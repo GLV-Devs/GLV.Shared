@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>$(AssemblyVersion)</Version>
+    <FileVersion>$(AssemblyVersion)</FileVersion>
+    <AssemblyVersion>0.0.*</AssemblyVersion>
+	<Title>GLV Shared Server Classes Library</Title>
+	<Authors>Diego Garcia</Authors>
+	<Company>GLV Softworks</Company>
+	<Copyright>Diego Garcia ©️ 2024</Copyright>
+	<RepositoryType>git</RepositoryType>
+	<NeutralLanguage>en</NeutralLanguage>
+	<Deterministic>False</Deterministic>
+	<InvariantGlobalization>false</InvariantGlobalization>
+	<NoWarn>7035</NoWarn>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MessagePack" Version="2.5.140" />
+		<PackageReference Include="MessagePack.Annotations" Version="2.5.140" />
+		<PackageReference Include="MessagePack.AspNetCoreMvcFormatter" Version="2.5.140" />
+		<PackageReference Include="MessagePackAnalyzer" Version="2.5.140">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.4" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Analyzers" Version="8.0.4" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.4">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Serilog" Version="3.1.1" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\GLV.Shared.Common\GLV.Shared.Common.csproj" />
+	  <ProjectReference Include="..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
+	</ItemGroup>
+	
+</Project>

@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>$(AssemblyVersion)</Version>
+    <FileVersion>$(AssemblyVersion)</FileVersion>
+    <AssemblyVersion>0.0.*</AssemblyVersion>
+	<Title>GLV Shared Data Transfer Classes Library</Title>
+	<Authors>Diego Garcia</Authors>
+	<Company>GLV Softworks</Company>
+	<Copyright>Diego Garcia ©️ 2024</Copyright>
+	<RepositoryType>git</RepositoryType>
+	<NeutralLanguage>en</NeutralLanguage>
+	<Deterministic>False</Deterministic>
+	<InvariantGlobalization>false</InvariantGlobalization>
+	<NoWarn>7035</NoWarn>
+  </PropertyGroup>
+
+</Project>
