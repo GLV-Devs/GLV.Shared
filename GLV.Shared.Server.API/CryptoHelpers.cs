@@ -13,7 +13,13 @@ namespace GLV.Shared.Server.API;
 
 public static class CryptoHelpers
 {
-    private static readonly Aes CommandTokenEncryptor;
+    /// <summary>
+    /// The Aes encryptor used for command tokens. The key is generated anew each time this class is called for the first time, in its static constructor (which means once per run, at most)
+    /// </summary>
+    /// <remarks>
+    /// Generally, you shouldn't be messing with this. I left it public in case you want to perform some shenanigans you probably should think twice about
+    /// </remarks>
+    public static Aes CommandTokenEncryptor { get; }
 
     static CryptoHelpers()
     {
@@ -64,7 +70,7 @@ public static class CryptoHelpers
         {
             CommandTokenEncryptor.DecryptCbc(rawBytes[(16 + 4)..written], rawBytes[4..(16 + 4)], decrypted);
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return Fail(out command, out expiration, out validFrom);
         }
