@@ -1,7 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
-
-namespace GLV.Shared.Data.Identifiers;
+﻿namespace GLV.Shared.Data.Identifiers;
 
 #if Snowflake128
 [StructLayout(LayoutKind.Explicit)]

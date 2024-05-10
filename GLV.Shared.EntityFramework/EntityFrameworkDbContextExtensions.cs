@@ -7,12 +7,6 @@ public static class EntityFrameworkDbContextExtensions
 {
     public static void BuildModelWithIDbModel(this DbContext context, ModelBuilder modelBuilder)
     {
-        if (context.Database.IsSqlite())
-            modelBuilder.UseCollation("SQL_Latin1_General_CP1_CI_AS");
-        // This sets the entire DB to be case insensitive
-
-        // From this point on, all this code is just to get the type of each DbSet property to configure itself through IDbModelBuilder
-
         var entityMethod = modelBuilder.GetType()
                                        .GetMethods()
                                        .Where(x => string.Equals(x.Name, "Entity", StringComparison.OrdinalIgnoreCase))

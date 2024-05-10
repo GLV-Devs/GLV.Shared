@@ -21,11 +21,11 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="8.0.4" />
+    <PackageReference Include="Serilog" Version="3.1.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GLV.Shared.Server.API\GLV.Shared.Server.API.csproj" />
+    <ProjectReference Include="..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
   </ItemGroup>
 
 </Project>

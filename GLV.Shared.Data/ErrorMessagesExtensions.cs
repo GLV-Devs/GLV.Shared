@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Net;
-using System.Runtime.CompilerServices;
+﻿using System.Net;
 
 namespace GLV.Shared.Data;
 

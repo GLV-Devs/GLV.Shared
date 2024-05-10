@@ -1,13 +1,9 @@
-﻿using System;
-using System.Buffers.Text;
-using System.Collections.Generic;
+﻿using System.Buffers.Text;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace GLV.Shared.Server.API;
 
@@ -26,6 +22,9 @@ public static class CryptoHelpers
         CommandTokenEncryptor = Aes.Create();
         CommandTokenEncryptor.GenerateKey();
     }
+
+    public static string EncodeCommandToken(string command, TimeSpan delayBeforeBeingValid = default, DateTimeOffset? expiration = null)
+        => EncodeCommandToken(command, expiration ?? DateTimeOffset.Now + TimeSpan.FromMinutes(15), DateTimeOffset.Now + delayBeforeBeingValid);
 
     public static string EncodeCommandToken(string command, DateTimeOffset expiration, DateTimeOffset? validFrom = null)
     {

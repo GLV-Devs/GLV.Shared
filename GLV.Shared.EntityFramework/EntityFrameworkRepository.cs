@@ -1,0 +1,115 @@
+﻿using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Net;
+using GLV.Shared.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace GLV.Shared.EntityFramework;
+
+public abstract class EntityFrameworkRepository<TEntity, TKey, TView, TCreateModel, TUpdateModel>(DbContext context)
+    : IRepository<TEntity, TKey, TView, TCreateModel, TUpdateModel>
+    where TEntity : class, IKeyed<TEntity, TKey>
+    where TKey : unmanaged, IEquatable<TKey>
+{
+    protected readonly DbContext Context = context ?? throw new ArgumentNullException(nameof(context));
+
+    protected abstract Expression<Func<TEntity, TView>> ViewExpression { get; }
+
+    public virtual async ValueTask<SuccessResult<TEntity>> Find(TKey id)
+    {
+        var t = Get();
+        if (t is not null)
+        {
+            var ent = await t.Where(x => x.Id.Equals(id)).FirstOrDefaultAsync();
+
+            if (ent is not null)
+                return new SuccessResult<TEntity>(ent);
+        }
+
+        ErrorList errors = new();
+        errors.AddError(ErrorMessages.EntityNotFound(typeof(TEntity).Name, $"id: {id}"));
+        return new SuccessResult<TEntity>(errors);
+    }
+
+    public virtual async ValueTask<SuccessResult> Delete(TEntity entity)
+    {
+        var entities = Get();
+        var check = entities?.ContainsAsync(entity);
+        if (check is null || await check is not true)
+        {
+            ErrorList err = new(HttpStatusCode.Forbidden);
+            return new(err.AddEntityNotFound(typeof(TEntity).Name, $"id: {entity.Id}"));
+        }
+
+        Debug.Assert(entities is not null);
+        await entities
+            .Where(x => x.Id.Equals(entity.Id))
+            .ExecuteDeleteAsync();
+
+        return SuccessResult.Success;
+    }
+
+    public async ValueTask<SuccessResult?> Delete(TKey id)
+    {
+        var entities = Get();
+        var check = entities?.AnyAsync(x => x.Id.Equals(id));
+        if (check is null || await check is not true)
+        {
+            ErrorList err = new(HttpStatusCode.Forbidden);
+            return new(err.AddEntityNotFound(typeof(TEntity).Name, $"id: {id}"));
+        }
+
+        Debug.Assert(entities is not null);
+        await entities
+            .Where(x => x.Id.Equals(id))
+            .ExecuteDeleteAsync();
+
+        return SuccessResult.Success;
+    }
+
+    public virtual async ValueTask<SuccessResult<int>> Delete(IEnumerable<TKey> ids)
+        => await Get().Where(x => ids.Contains(x.Id)).ExecuteDeleteAsync();
+
+    public abstract ValueTask<SuccessResult<TEntity>> Create(TCreateModel creationModel);
+
+    public virtual async ValueTask<SuccessResult> SaveChanges()
+    {
+        try
+        {
+            await Context.SaveChangesAsync();
+            return SuccessResult.Success;
+        }
+        catch (DbUpdateException e)
+        {
+            ErrorList errors = new();
+            var msg = e.InnerException!.Message;
+            if (msg.Contains("foreign key", StringComparison.OrdinalIgnoreCase))
+            {
+                var match = DataRegexes.DatabaseExceptionMessageForeignKey().Match(msg);
+                if (match.Success)
+                {
+                    if (match.Groups.TryGetValue("entity", out var group))
+                    {
+                        errors.AddEntityNotFound(group.Value, null);
+                        return errors;
+                    }
+                }
+            }
+
+            throw;
+        }
+    }
+
+    public virtual IQueryable<TEntity> Get()
+        => Context.Set<TEntity>();
+
+    public IQueryable<TView> GetViews(IQueryable<TEntity> entities)
+        => entities.Select(ViewExpression);
+
+    public abstract TView GetView(TEntity entity);
+
+    public abstract ValueTask<SuccessResult<TView>?> Update(TKey key, TUpdateModel updateModel);
+
+    public async ValueTask<SuccessResult<int>> Delete(IQueryable<TEntity> entities)
+        => await entities.ExecuteDeleteAsync();
+}

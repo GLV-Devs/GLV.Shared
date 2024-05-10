@@ -75,7 +75,7 @@ public static class ModelManipulationHelper
         if (errors.IsEmptyString(prospectiveEmail))
             return false;
 
-        if (Regexes.IsEmail().IsMatch(prospectiveEmail))
+        if (DataRegexes.IsEmail().IsMatch(prospectiveEmail))
             return true;
 
         errors.AddBadEmail(prospectiveEmail);

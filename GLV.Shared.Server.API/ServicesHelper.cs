@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.Xml.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -132,7 +131,7 @@ public static class ServicesHelper
             Type optionsConfigurationCallbackType
             )
     {
-        name ??= Options.DefaultName;
+        name ??= Microsoft.Extensions.Options.Options.DefaultName; // From Microsoft.Extensions.Configuration.Abstractions
         section ??= type.Name;
 
         var closure = decoratedOptionsClosureConstructor.Invoke(new object[] { section, config });

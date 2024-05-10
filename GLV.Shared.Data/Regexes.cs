@@ -2,7 +2,7 @@
 
 namespace GLV.Shared.Data;
 
-public static partial class Regexes
+public static partial class DataRegexes
 {
     [GeneratedRegex(@"FK_(?<table>.*)?_(?<entity>.*)?_(?<column>.*)?")]
     public static partial Regex DatabaseExceptionMessageForeignKey();
