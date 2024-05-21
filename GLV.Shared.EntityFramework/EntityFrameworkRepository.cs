@@ -11,7 +11,7 @@ public abstract class EntityFrameworkRepository<TEntity, TKey, TView, TCreateMod
     where TEntity : class, IKeyed<TEntity, TKey>
     where TKey : unmanaged, IEquatable<TKey>
 {
-    protected readonly DbContext Context = context ?? throw new ArgumentNullException(nameof(context));
+    public DbContext Context { get; } = context ?? throw new ArgumentNullException(nameof(context));
 
     protected abstract Expression<Func<TEntity, TView>> ViewExpression { get; }
 
@@ -72,36 +72,11 @@ public abstract class EntityFrameworkRepository<TEntity, TKey, TView, TCreateMod
 
     public abstract ValueTask<SuccessResult<TEntity>> Create(TCreateModel creationModel);
 
-    public virtual async ValueTask<SuccessResult> SaveChanges()
-    {
-        try
-        {
-            await Context.SaveChangesAsync();
-            return SuccessResult.Success;
-        }
-        catch (DbUpdateException e)
-        {
-            ErrorList errors = new();
-            var msg = e.InnerException!.Message;
-            if (msg.Contains("foreign key", StringComparison.OrdinalIgnoreCase))
-            {
-                var match = DataRegexes.DatabaseExceptionMessageForeignKey().Match(msg);
-                if (match.Success)
-                {
-                    if (match.Groups.TryGetValue("entity", out var group))
-                    {
-                        errors.AddEntityNotFound(group.Value, null);
-                        return errors;
-                    }
-                }
-            }
+    public virtual ValueTask<SuccessResult> SaveChanges()
+        => context.TrySaveChanges();
 
-            throw;
-        }
-    }
-
-    public virtual IQueryable<TEntity> Get()
-        => Context.Set<TEntity>();
+    public virtual IQueryable<TEntity> Get(IEntityQuery<TEntity, TKey>? query = null)
+        => query is null ? Context.Set<TEntity>() : query.PerformQuery(Context.Set<TEntity>());
 
     public IQueryable<TView> GetViews(IQueryable<TEntity> entities)
         => entities.Select(ViewExpression);

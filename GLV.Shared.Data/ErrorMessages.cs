@@ -54,6 +54,17 @@ public static partial class ErrorMessages
             }
         );
 
+    public static ErrorMessage SomeEntitiesNotFound(string entity, int? missingEntityCount)
+        => new(
+            missingEntityCount is not null ? $"{missingEntityCount} de las entidades '{entity}' no pudieron ser encontradas" : $"Algunas de las entidades '{entity}' no pudieron ser encontradas",
+            nameof(SomeEntitiesNotFound),
+            new ErrorMessageProperty[]
+            {
+                new(nameof(entity), entity),
+                new(nameof(missingEntityCount), missingEntityCount?.ToString())
+            }
+        );
+
     public static ErrorMessage EntityNotFound(string entity, string? query)
         => new(
             string.IsNullOrWhiteSpace(query) ? $"No se pudo encontrar la entidad {entity} especificada" : $"No se pudo encontrar una entidad {entity} bajo {query}",
@@ -104,13 +115,21 @@ public static partial class ErrorMessages
             null
         );
 
-    public static ErrorMessage ActionDisallowed(string? action = null)
+    public static ErrorMessage ActionDisallowed(DisallowableAction? action = null, DisallowableActionTarget? target = null, string? targetName = null)
         => new(
-            action is null ? "La accion no está permitida para este usuario" : $"La accion '{action}' no está permitida para este usuario",
+            action is null 
+                ? "La accion no está permitida para este usuario" 
+                : target is null
+                    ? $"La accion '{action}' no está permitida para este usuario"
+                    : targetName is null
+                        ? $"La accion '{action}' sobre {target} no está permitida para este usuario"
+                        : $"La accion '{action}' sobre {target} '{targetName}' no está permitida para este usuario",
             nameof(ActionDisallowed),
             new ErrorMessageProperty[]
             {
-                new(nameof(action), action!)
+                new(nameof(action), action?.ToString()),
+                new(nameof(target), target?.ToString()),
+                new(nameof(targetName), targetName)
             }
         );
 
@@ -241,6 +260,16 @@ public static partial class ErrorMessages
             new ErrorMessageProperty[]
             {
                 new(nameof(property), property)
+            }
+        );
+
+    public static ErrorMessage AddUniqueEntityAlreadyExists(string entity)
+        => new(
+            $"Una entidad de tipo {entity} ya existe con los parametros suministrados",
+            nameof(AddUniqueEntityAlreadyExists),
+            new ErrorMessageProperty[]
+            {
+                new(nameof(entity), entity)
             }
         );
 

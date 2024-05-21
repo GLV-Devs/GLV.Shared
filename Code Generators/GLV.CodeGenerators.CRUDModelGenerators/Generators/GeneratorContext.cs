@@ -7,6 +7,7 @@ public class GeneratorContext
 {
     public RepositoryGenerator RepositoryGenerator { get; }
     public FrozenSet<IDTOGenerator> Generators { get; }
+    public string? BaseOutputPath { get; }
 
     public GeneratorContext(ILogger log, IEnumerable<Type> generators, string? basePath, string baseNamespace)
     {
@@ -19,5 +20,6 @@ public class GeneratorContext
         }).ToFrozenSet();
 
         RepositoryGenerator = new(basePath, baseNamespace, this);
+        BaseOutputPath = basePath;
     }
 }

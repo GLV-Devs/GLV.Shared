@@ -77,6 +77,7 @@ public static class CRUDModelGenerator
                 logger.Warning("Found one or more special case properties in model {model} for type {type}", str, type);
 
         logger.Information("Generated DTOs for {viableTypeCount} types", viableTypeCount);
+        logger.Information("Output folder: {folder}", Path.GetFullPath(context.BaseOutputPath!));
     }
 
     private static void LoadReferencedAssembly(Assembly assembly)

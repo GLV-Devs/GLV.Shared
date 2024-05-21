@@ -4,7 +4,6 @@ namespace GLV.Shared.Server.API.Options;
 
 public record ServerDatabaseConfiguration(
     DatabaseType DatabaseType,
-    TimeSpan UserAlertCleanUpInterval,
     string? SQLServerConnectionString = null,
     string? SQLiteConnectionString = null
 )

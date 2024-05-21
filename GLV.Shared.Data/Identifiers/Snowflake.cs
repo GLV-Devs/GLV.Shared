@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text.Json.Serialization;
 
 namespace GLV.Shared.Data.Identifiers;
 
@@ -11,12 +13,14 @@ public readonly struct Snowflake : IEquatable<Snowflake>, IComparable<Snowflake>
     static Snowflake()
     {
         ReferenceStampUtc = new DateTime(2023, 10, 10, 0, 0, 0, DateTimeKind.Utc).Ticks;
+        RandomNumberGenerator.Fill(MemoryMarshal.AsBytes(new Span<ushort>(ref snowflakeMachineId)));
     }
 
-    public static ushort SnowflakeMachineId { get; set; }
+    public static ushort SnowflakeMachineId { get => snowflakeMachineId; set => snowflakeMachineId = value; }
 
     private static int LastStamp;
     private static ushort LastIndex;
+    private static ushort snowflakeMachineId;
 
     [FieldOffset(0)]
     private readonly long aslong;
@@ -37,6 +41,7 @@ public readonly struct Snowflake : IEquatable<Snowflake>, IComparable<Snowflake>
         this.machineId = machineId;
     }
 
+    [JsonConstructor]
     public Snowflake(long value)
     {
         aslong = value;

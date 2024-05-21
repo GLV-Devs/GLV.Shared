@@ -1,16 +1,21 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Security.Claims;
 using GLV.Shared.Server.API.Workers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GLV.Shared.Server.API.Authorization.Implementations;
 
+[RegisterService(typeof(SessionManager), Lifetime = ServiceLifetime.Singleton)]
 [RegisterService(typeof(ISessionManager), Lifetime = ServiceLifetime.Singleton)]
 public class SessionManager : ISessionManager
 {
+    public delegate void SessionDeleted(string ticketId, AuthenticationTicket ticket);
+
     public SessionManager()
     {
         BackgroundTaskStore.Add(SessionCleanup, TimeSpan.FromMinutes(20));
@@ -22,12 +27,17 @@ public class SessionManager : ISessionManager
 
     private readonly ConcurrentDictionary<string, AuthenticationTicket> SessionStore = new(Environment.ProcessorCount, 100);
 
+    public event SessionDeleted? OnSessionDeleted;
+
     private Task SessionCleanup(CancellationToken ct) => Task.Run(() =>
     {
         foreach (var (key, ticket) in SessionStore.ToArray())
         {
             if (ticket.Properties.ExpiresUtc is DateTimeOffset exp && exp > DateTimeOffset.Now)
+            {
                 SessionStore.TryRemove(key, out _);
+                OnSessionDeleted?.Invoke(key, ticket);
+            }
         }
 
         BackgroundTaskStore.Add(SessionCleanup, TimeSpan.FromMinutes(10));
@@ -76,7 +86,13 @@ public class SessionManager : ISessionManager
     public bool DestroySession(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        return key.Length == KeyLength && SessionStore.TryRemove(key, out _);
+        if (key.Length == KeyLength && SessionStore.TryRemove(key, out var ticket))
+        {
+            OnSessionDeleted?.Invoke(key, ticket);
+            return true;
+        }
+
+        return false;
     }
 
     #endregion

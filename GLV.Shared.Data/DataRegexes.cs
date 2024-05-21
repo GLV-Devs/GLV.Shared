@@ -1,5 +1,4 @@
 ﻿using System.Text.RegularExpressions;
-
 namespace GLV.Shared.Data;
 
 public static partial class DataRegexes

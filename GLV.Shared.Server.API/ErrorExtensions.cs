@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 
 namespace GLV.Shared.Server.API;
+
 public static class ErrorExtensions
 {
     public static ref ErrorList AddIdentityErrors(this ref ErrorList errors, IdentityResult result)

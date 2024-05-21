@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using GLV.Shared.Data;
 using GLV.Shared.DataTransfer;
+using GLV.Shared.Server.API.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -9,12 +10,46 @@ namespace GLV.Shared.Server.API.Filters;
 
 public class ServerResponseFilter : IResultFilter
 {
+    private sealed class ServerAsyncResponse<T>(string? dataType, string traceId, IAsyncEnumerable<T>? data)
+    {
+        public string? DataType => dataType;
+
+        public string TraceId { get; set; } = traceId ?? throw new ArgumentNullException(nameof(traceId));
+
+        public IAsyncEnumerable<T>? Data { get; set; } = data;
+    }
+
+    [ThreadStatic]
+    private static Type[]? ServerAsyncResponseGenericTypeBuffer;
+
+    [ThreadStatic]
+    private static object[]? ServerAsyncResponseConstructorParametersBuffer;
+
+    private object BuildServerAsyncResponse(AsyncResultData data, string traceId)
+    {
+        var typeArgs = ServerAsyncResponseGenericTypeBuffer ??= [null!];
+        typeArgs[0] = data.AsyncEnumerableType;
+
+        var ctorParams = ServerAsyncResponseConstructorParametersBuffer ?? [null!, null!, null!];
+        ctorParams[0] = data.AsyncEnumerableType.Name;
+        ctorParams[1] = traceId;
+        ctorParams[2] = data.Data!;
+
+        var inst = Activator.CreateInstance(typeof(ServerAsyncResponse<>).MakeGenericType(typeArgs), ctorParams)!;
+        Array.Clear(ctorParams);
+        return inst;
+    }
+
     protected ActionResult? FillAPIResponseObject(ResultExecutingContext context)
     {
         if (context.Result is ObjectResult objresult)
         {
             switch (objresult.Value)
             {
+                case AsyncResultData resultData:
+                    objresult.Value = BuildServerAsyncResponse(resultData, context.HttpContext.TraceIdentifier);
+                    break;
+
                 case ProblemDetails problem:
                     var pdlist = new ErrorList();
                     pdlist.AddError(new ErrorMessage($"{problem.Title}: {problem.Detail}", "Unknown", null));

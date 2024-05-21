@@ -6,15 +6,42 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace GLV.Shared.Server.API;
-public static class ServiceCollectionExtensions
+
+public static class ServiceExtensions
 {
+    public static IServiceScope GetService<T>(this IServiceScope scope, out T? service)
+    {
+        service = scope.ServiceProvider.GetService<T>();
+        return scope;
+    }
+
+    public static IServiceScope GetRequiredService<T>(this IServiceScope scope, out T service)
+        where T : notnull
+    {
+        service = scope.ServiceProvider.GetRequiredService<T>();
+        return scope;
+    }
+
+    public static IServiceScope GetService(this IServiceScope scope, Type serviceType, out object? service)
+    {
+        service = scope.ServiceProvider.GetService(serviceType);
+        return scope;
+    }
+
+    public static IServiceScope GetRequiredService(this IServiceScope scope, Type serviceType, out object service)
+    {
+        service = scope.ServiceProvider.GetRequiredService(serviceType);
+        return scope;
+    }
+
     public static IServiceCollection ConfigureGLVDatabase<TContext>(
         this IServiceCollection services, 
         IHostApplicationBuilder builder,
         string sqlServerMigrationsAssemblyName,
         string mySqlMigrationsAssemblyName,
         string sqliteMigrationsAssemblyName,
-        string? configSectionName = null
+        string? configSectionName = null,
+        bool setAsDefaultDbContext = false
     )
         where TContext : DbContext
     {
@@ -60,6 +87,9 @@ public static class ServiceCollectionExtensions
         }
         else
             throw new InvalidDataException($"Unknown Database Type: {dbconf.DatabaseType}");
+
+        if (setAsDefaultDbContext)
+            services.AddScoped<DbContext, TContext>();
 
         return services;
     }

@@ -6,7 +6,7 @@ public interface IRepository<TModel, TKey, TView, TCreateModel, TUpdateModel>
 {
     public ValueTask<SuccessResult<TModel>> Find(TKey id);
 
-    public IQueryable<TModel> Get();
+    public IQueryable<TModel> Get(IEntityQuery<TModel, TKey>? query = null);
 
     public IQueryable<TView> GetViews(IQueryable<TModel> entities);
 

@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Runtime.CompilerServices;
 
 namespace GLV.Shared.Data;
 
@@ -26,6 +27,12 @@ public static partial class ErrorMessagesExtensions
     {
         list.RecommendedCode = HttpStatusCode.NotFound;
         return ref list.AddError(ErrorMessages.EntityNotFound(entity, query));
+    }
+
+    public static ref ErrorList AddSomeEntitiesNotFound(this ref ErrorList list, string entity, int? entityCount)
+    {
+        list.RecommendedCode = HttpStatusCode.NotFound;
+        return ref list.AddError(ErrorMessages.SomeEntitiesNotFound(entity, entityCount));
     }
 
     public static ref ErrorList AddPropertiesNotEqual(this ref ErrorList list, string property, string otherProperty)
@@ -64,10 +71,10 @@ public static partial class ErrorMessagesExtensions
         return ref list.AddError(ErrorMessages.AddUnknownFileType(fileType));
     }
 
-    public static ref ErrorList AddActionDisallowed(this ref ErrorList list, string? action = null)
+    public static ref ErrorList AddActionDisallowed(this ref ErrorList list, DisallowableAction? action = null, DisallowableActionTarget? target = null, string? targetName = null)
     {
         list.RecommendedCode = HttpStatusCode.Forbidden;
-        return ref list.AddError(ErrorMessages.ActionDisallowed(action));
+        return ref list.AddError(ErrorMessages.ActionDisallowed(action, target, targetName));
     }
 
     public static ref ErrorList AddConfirmationNotSame(this ref ErrorList list, string property)
@@ -158,6 +165,12 @@ public static partial class ErrorMessagesExtensions
     {
         list.RecommendedCode = HttpStatusCode.Conflict;
         return ref list.AddError(ErrorMessages.UniqueValueForPropertyAlreadyExists(property, value));
+    }
+
+    public static ref ErrorList AddUniqueEntityAlreadyExists(this ref ErrorList list, string entity)
+    {
+        list.RecommendedCode = HttpStatusCode.Conflict;
+        return ref list.AddError(ErrorMessages.AddUniqueEntityAlreadyExists(entity));
     }
 
     public static ref ErrorList AddEmptyProperty(this ref ErrorList list, string? property = null)
