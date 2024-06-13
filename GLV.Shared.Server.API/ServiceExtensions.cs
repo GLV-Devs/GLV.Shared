@@ -9,6 +9,18 @@ namespace GLV.Shared.Server.API;
 
 public static class ServiceExtensions
 {
+    public static IServiceScope GetServices<T>(this IServiceScope scope, out IEnumerable<T> services)
+    {
+        services = scope.ServiceProvider.GetServices<T>();
+        return scope;
+    }
+
+    public static IServiceScope GetServices(this IServiceScope scope, Type serviceType, out IEnumerable<object?> services)
+    {
+        services = scope.ServiceProvider.GetServices(serviceType);
+        return scope;
+    }
+
     public static IServiceScope GetService<T>(this IServiceScope scope, out T? service)
     {
         service = scope.ServiceProvider.GetService<T>();

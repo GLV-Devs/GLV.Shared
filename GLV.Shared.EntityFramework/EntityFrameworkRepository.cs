@@ -15,12 +15,18 @@ public abstract class EntityFrameworkRepository<TEntity, TKey, TView, TCreateMod
 
     protected abstract Expression<Func<TEntity, TView>> ViewExpression { get; }
 
+    protected virtual Expression<Func<TEntity, bool>> Match(TEntity entity)
+        => x => x.Id.Equals(entity.Id);
+
+    protected virtual Expression<Func<TEntity, bool>> Match(TKey key)
+        => x => x.Id.Equals(key);
+
     public virtual async ValueTask<SuccessResult<TEntity>> Find(TKey id)
     {
         var t = Get();
         if (t is not null)
         {
-            var ent = await t.Where(x => x.Id.Equals(id)).FirstOrDefaultAsync();
+            var ent = await t.Where(Match(id)).FirstOrDefaultAsync();
 
             if (ent is not null)
                 return new SuccessResult<TEntity>(ent);
@@ -42,9 +48,7 @@ public abstract class EntityFrameworkRepository<TEntity, TKey, TView, TCreateMod
         }
 
         Debug.Assert(entities is not null);
-        await entities
-            .Where(x => x.Id.Equals(entity.Id))
-            .ExecuteDeleteAsync();
+        await entities.Where(Match(entity)).ExecuteDeleteAsync();
 
         return SuccessResult.Success;
     }
@@ -52,7 +56,7 @@ public abstract class EntityFrameworkRepository<TEntity, TKey, TView, TCreateMod
     public async ValueTask<SuccessResult?> Delete(TKey id)
     {
         var entities = Get();
-        var check = entities?.AnyAsync(x => x.Id.Equals(id));
+        var check = entities?.AnyAsync(Match(id));
         if (check is null || await check is not true)
         {
             ErrorList err = new(HttpStatusCode.Forbidden);
@@ -60,9 +64,7 @@ public abstract class EntityFrameworkRepository<TEntity, TKey, TView, TCreateMod
         }
 
         Debug.Assert(entities is not null);
-        await entities
-            .Where(x => x.Id.Equals(id))
-            .ExecuteDeleteAsync();
+        await entities.Where(Match(id)).ExecuteDeleteAsync();
 
         return SuccessResult.Success;
     }
