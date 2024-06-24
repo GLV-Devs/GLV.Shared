@@ -109,7 +109,7 @@ public class ServerResponseFilter : IResultFilter
                 StatusCode = statusResult.StatusCode
             };
         }
-        else if (context.Result is null or EmptyResult or FileStreamResult)
+        else if (context.Result is null or EmptyResult or FileStreamResult or FileContentResult)
             return null;
         else
         {

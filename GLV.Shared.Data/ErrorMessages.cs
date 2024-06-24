@@ -263,9 +263,9 @@ public static partial class ErrorMessages
             }
         );
 
-    public static ErrorMessage AddUniqueEntityAlreadyExists(string entity)
+    public static ErrorMessage AddUniqueEntityAlreadyExists(string? entity)
         => new(
-            $"Una entidad de tipo {entity} ya existe con los parametros suministrados",
+            string.IsNullOrWhiteSpace(entity) ? $"Esta entidad ya existe" : $"Una entidad de tipo {entity} ya existe con los parametros suministrados",
             nameof(AddUniqueEntityAlreadyExists),
             new ErrorMessageProperty[]
             {
@@ -273,9 +273,11 @@ public static partial class ErrorMessages
             }
         );
 
-    public static ErrorMessage UniqueValueForPropertyAlreadyExists(string property, string value)
+    public static ErrorMessage UniqueValueForPropertyAlreadyExists(string property, string? value)
         => new(
-            $"La propiedad {property} ha de tener un valor único, y ya existe una entidad con un valor de {value}",
+            string.IsNullOrWhiteSpace(value) 
+                ? $"La propiedad {property} ha de tener un valor único"
+                : $"La propiedad {property} ha de tener un valor único, y ya existe una entidad con un valor de {value}",
             nameof(UniqueValueForPropertyAlreadyExists),
             new ErrorMessageProperty[] 
             {

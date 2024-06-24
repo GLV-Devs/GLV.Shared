@@ -161,13 +161,13 @@ public static partial class ErrorMessagesExtensions
         return ref list.AddError(ErrorMessages.AddPropertyNotFound(property));
     }
 
-    public static ref ErrorList AddUniqueValueForPropertyAlreadyExists(this ref ErrorList list, string property, string value)
+    public static ref ErrorList AddUniqueValueForPropertyAlreadyExists(this ref ErrorList list, string property, string? value)
     {
         list.RecommendedCode = HttpStatusCode.Conflict;
         return ref list.AddError(ErrorMessages.UniqueValueForPropertyAlreadyExists(property, value));
     }
 
-    public static ref ErrorList AddUniqueEntityAlreadyExists(this ref ErrorList list, string entity)
+    public static ref ErrorList AddUniqueEntityAlreadyExists(this ref ErrorList list, string? entity)
     {
         list.RecommendedCode = HttpStatusCode.Conflict;
         return ref list.AddError(ErrorMessages.AddUniqueEntityAlreadyExists(entity));
@@ -199,7 +199,7 @@ public static partial class ErrorMessagesExtensions
 
     public static ref ErrorList AddNoPermission(this ref ErrorList list)
     {
-        list.RecommendedCode = HttpStatusCode.Unauthorized;
+        list.RecommendedCode = HttpStatusCode.Forbidden;
         return ref list.AddError(ErrorMessages.NoPermission());
     }
 
