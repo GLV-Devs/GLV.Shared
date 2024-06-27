@@ -18,4 +18,8 @@
 	<NoWarn>7035</NoWarn>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
+  </ItemGroup>
+
 </Project>
