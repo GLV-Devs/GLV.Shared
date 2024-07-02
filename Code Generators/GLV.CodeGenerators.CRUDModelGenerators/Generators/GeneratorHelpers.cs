@@ -101,12 +101,13 @@ public static class GeneratorHelpers
                 || type == typeof(DateOnly)
                 || type == typeof(TimeOnly)
                 || type == typeof(DateTime)
+                || type == typeof(TimeSpan)
                 || type == typeof(DateTimeOffset)
                 || type == typeof(float)
                 || type == typeof(double)
                 || type == typeof(decimal)
                 || type == typeof(bool)
-                || type.IsAssignableTo(typeof(Enum));
+                || type.IsEnum;
     }
 
     public static Type? GetIdType(Type type)
@@ -120,7 +121,7 @@ public static class GeneratorHelpers
             || type == typeof(ulong)
             || type == typeof(Guid)
             || type == typeof(Snowflake)
-            || type.IsAssignableTo(typeof(Enum))
+            || type.IsEnum
             ? type
             : (type.GetInterfaces()
                    .Where(x => x.IsConstructedGenericType)

@@ -21,10 +21,10 @@ public class RandomSessionKeyHandler(IOptions<IdentityOptions> identityOptions, 
     {
         var key = GetRandomSessionKeyOrNull();
         return Task.FromResult(key is null
-                || sessionManager.TryGetSession(key, out var ticket) is false
-                || ticket.Properties.ExpiresUtc < TimeProvider.GetUtcNow()
+                || sessionManager.TryGetSession(key, out var session) is false
+                || session.Ticket.Properties.ExpiresUtc < TimeProvider.GetUtcNow()
             ? AuthenticateResult.NoResult()
-            : AuthenticateResult.Success(RefreshTicket(ticket)));
+            : AuthenticateResult.Success(RefreshTicket(session.Ticket)));
     }
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)

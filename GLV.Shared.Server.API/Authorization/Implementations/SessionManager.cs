@@ -4,9 +4,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using GLV.Shared.Server.API.Workers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
+using static GLV.Shared.Server.API.Authorization.ISessionManager;
 
 namespace GLV.Shared.Server.API.Authorization.Implementations;
 
@@ -14,18 +16,24 @@ namespace GLV.Shared.Server.API.Authorization.Implementations;
 [RegisterService(typeof(ISessionManager), Lifetime = ServiceLifetime.Singleton)]
 public class SessionManager : ISessionManager
 {
-    public delegate void SessionDeleted(string ticketId, AuthenticationTicket ticket);
-
     public SessionManager()
     {
+
         BackgroundTaskStore.Add(SessionCleanup, TimeSpan.FromMinutes(20));
+        var klen = GetKeyLength();
+        if (klen < 3)
+            throw new InvalidOperationException($"KeyLength cannot be less than 3. Value is {klen}");
+        KeyLength = klen;
     }
 
     #region Manager
 
-    public const int KeyLength = 128;
+    public int KeyLength { get; }
 
-    private readonly ConcurrentDictionary<string, AuthenticationTicket> SessionStore = new(Environment.ProcessorCount, 100);
+    protected virtual int GetKeyLength()
+        => 128;
+
+    protected readonly ConcurrentDictionary<string, SessionInfo> SessionStore = new(Environment.ProcessorCount, 100);
 
     public event SessionDeleted? OnSessionDeleted;
 
@@ -33,7 +41,7 @@ public class SessionManager : ISessionManager
     {
         foreach (var (key, ticket) in SessionStore.ToArray())
         {
-            if (ticket.Properties.ExpiresUtc is DateTimeOffset exp && exp > DateTimeOffset.Now)
+            if (ticket.Ticket.Properties.ExpiresUtc is DateTimeOffset exp && exp > DateTimeOffset.Now)
             {
                 SessionStore.TryRemove(key, out _);
                 OnSessionDeleted?.Invoke(key, ticket);
@@ -45,10 +53,10 @@ public class SessionManager : ISessionManager
 
     public bool TryGenerateNewKey(Span<char> output, out int charsWritten)
     {
-        Span<Guid> guids = stackalloc Guid[6];
-        for (int i = 0; i < guids.Length; i++)
-            guids[i] = Guid.NewGuid();
-        return Convert.TryToBase64Chars(MemoryMarshal.Cast<Guid, byte>(guids), output, out charsWritten);
+        Debug.Assert(KeyLength > 3);
+        Span<byte> rand = stackalloc byte[(int)float.Ceiling((((3f * KeyLength) / 4) - 2))];
+        RandomNumberGenerator.Fill(rand);
+        return Convert.TryToBase64Chars(rand, output, out charsWritten);
     }
 
     public string GenerateNewKey()
@@ -59,31 +67,31 @@ public class SessionManager : ISessionManager
         return new string(chars);
     }
 
-    public string CreateNewSession(AuthenticationTicket ticket)
+    public virtual string CreateNewSession(AuthenticationTicket ticket)
     {
         var key = GenerateNewKey();
         for (int attempts = 0; attempts < 3; attempts++)
         {
-            if (SessionStore.TryAdd(key, ticket))
+            if (SessionStore.TryAdd(key, new(ticket, key)))
                 return key;
             key = GenerateNewKey();
         }
         throw new InvalidOperationException("Could not generate a unique session key within 3 attempts");
     }
 
-    public bool TryGetSession(string key, [NotNullWhen(true)] out AuthenticationTicket? ticket)
+    public virtual bool TryGetSession(string key, [NotNullWhen(true)] out SessionInfo? session)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         if (key.Length != KeyLength)
         {
-            ticket = null;
+            session = null;
             return false;
         }
 
-        return SessionStore.TryGetValue(key, out ticket);
+        return SessionStore.TryGetValue(key, out session);
     }
 
-    public bool DestroySession(string key)
+    public virtual bool DestroySession(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         if (key.Length == KeyLength && SessionStore.TryRemove(key, out var ticket))

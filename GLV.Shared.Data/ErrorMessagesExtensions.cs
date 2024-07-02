@@ -149,6 +149,12 @@ public static partial class ErrorMessagesExtensions
         return ref list.AddError(ErrorMessages.BadUsername(username));
     }
 
+    public static ref ErrorList AddIllegalCharacter(this ref ErrorList list, string property, string characters)
+    {
+        list.RecommendedCode = HttpStatusCode.BadRequest;
+        return ref list.AddError(ErrorMessages.IllegalCharacter(property, characters));
+    }
+
     public static ref ErrorList AddInvalidProperty(this ref ErrorList list, string property)
     {
         list.RecommendedCode = HttpStatusCode.BadRequest;

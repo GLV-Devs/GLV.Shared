@@ -233,6 +233,17 @@ public static partial class ErrorMessages
             }
         );
 
+    public static ErrorMessage IllegalCharacter(string property, string characters)
+        => new(
+            "The property contains illegal characters",
+            nameof(IllegalCharacter),
+            new ErrorMessageProperty[]
+            {
+                new(nameof(property), property),
+                new(nameof(characters), characters)
+            }
+        );
+
     public static ErrorMessage BadUsername(string username)
         => new(
             $"El nombre de usuario no es válido: {username}",
@@ -299,6 +310,22 @@ public static partial class ErrorMessages
             nameof(BadPassword),
             null
         );
+
+    public static ErrorMessage NotExactLength(string property, int exactCharacters, int currentCharacters)
+    {
+        var mc = exactCharacters.ToString();
+        var cc = currentCharacters.ToString();
+        return new(
+                $"La propiedad {property} tiene debe de tener una cantidad exacta de caracteres ({mc}). Esta propiedad tiene {cc} caracteres",
+                nameof(TooLong),
+                new ErrorMessageProperty[]
+                {
+                new(nameof(property), property),
+                new(nameof(exactCharacters), mc),
+                new(nameof(currentCharacters), cc)
+                }
+            );
+    }
 
     public static ErrorMessage TooLong(string property, int maxCharacters, int currentCharacters)
     {

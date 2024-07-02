@@ -23,7 +23,7 @@ public sealed class UpdateDTOModel(UpdateModelGenerator updateModelGenerator, Ty
             switch (data.PropertyKind)
             {
                 case PropertyKind.Id:
-                    t = GeneratorHelpers.GetIdType(data.Type) ?? throw new InvalidDataException("Couldn't get the Id type of property kind Id");
+                    t = GeneratorHelpers.GetIdType(data.Type) ?? throw new InvalidDataException($"Couldn't get the Id type of property kind Id. Property type: {GeneratorHelpers.BuildTypeNameAsCSharpTypeExpression(data.Type)}; Property name: {data.Property.Name}");
                     typename = GeneratorHelpers.BuildTypeNameAsCSharpTypeExpression(Nullable.GetUnderlyingType(t) ?? t).Expression;
                     break;
 

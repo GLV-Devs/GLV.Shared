@@ -95,7 +95,20 @@ public static class ModelManipulationHelper
         return false;
     }
 
-    public static bool IsTooLong(this ref ErrorList errors, string update, int maxlength, string property)
+    public static bool IsExactLength(this ref ErrorList errors, string update, int length, [CallerArgumentExpression(nameof(update))] string property = "")
+    {
+        if (update.Length != length)
+        {
+            errors.RecommendedCode = HttpStatusCode.BadRequest;
+            errors.AddError(ErrorMessages.NotExactLength(property, length, update.Length));
+            return false;
+        }
+
+        return true;
+    }
+
+    public static bool IsTooLong(this ref ErrorList errors, string update, int maxlength,
+        [CallerArgumentExpression(nameof(update))] string property = "")
     {
         if (update.Length > maxlength)
         {

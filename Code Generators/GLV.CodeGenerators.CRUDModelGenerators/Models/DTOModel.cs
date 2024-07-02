@@ -84,7 +84,7 @@ public abstract class DTOModel(IDTOGenerator generator, Type originalType, strin
             switch (data.PropertyKind)
             {
                 case PropertyKind.Id:
-                    t = GeneratorHelpers.GetIdType(data.Type) ?? throw new InvalidDataException($"Couldn't get the Id type of property kind Id. Property type: {data.Type.Name}");
+                    t = GeneratorHelpers.GetIdType(data.Type) ?? throw new InvalidDataException($"Couldn't get the Id type of property kind Id. Property type: {GeneratorHelpers.BuildTypeNameAsCSharpTypeExpression(data.Type)}; Property name: {data.Property.Name}");
                     typename = GeneratorHelpers.BuildTypeNameAsCSharpTypeExpression(t).Expression;
                     break;
 
