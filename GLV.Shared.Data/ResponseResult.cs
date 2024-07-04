@@ -25,6 +25,11 @@ public readonly struct ResponseResult(HttpStatusCode code, IEnumerable<ErrorMess
 
     public ResponseResult AssertSuccess() 
         => IsSuccess is false ? throw new ResponseResultFailureException(Errors!) : this;
+
+    public ResponseResultData<T> PropagateError<T>()
+        => IsSuccess
+            ? throw new InvalidOperationException("This method cannot be called on a successful ResponseResult")
+            : new ResponseResultData<T>(Errors!, StatusCode);
 }
 
 public readonly struct ResponseResultData<T>(T data, HttpStatusCode code, IEnumerable<ErrorMessage>? errors = null)
@@ -58,6 +63,11 @@ public readonly struct ResponseResultData<T>(T data, HttpStatusCode code, IEnume
 
     public ResponseResultData<T> AssertSuccess() 
         => IsSuccess is false ? throw new ResponseResultFailureException(Errors!) : this;
+
+    public ResponseResult PropagateError()
+        => IsSuccess
+            ? throw new InvalidOperationException("This method cannot be called on a successful ResponseResult")
+            : new ResponseResult(StatusCode, Errors!);
 
     public ResponseResultData<TOther> PropagateError<TOther>() 
         => IsSuccess
