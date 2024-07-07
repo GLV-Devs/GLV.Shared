@@ -20,5 +20,5 @@ public class ResponseResultFailureException : Exception
     public ResponseResultFailureException(string message, Exception inner) : base(message, inner) { }
 
     private static string SerializeErrorMessages(IEnumerable<ErrorMessage> errors)
-        => "-> " + string.Join("\n-> ", errors.Select(x => $"{x.Key}: {(x.Properties is not null ? string.Join("|", x.Properties.Select(x => $"{x.Key}: {x.Value}")) : null)}"));
+        => "-> " + string.Join("\n-> ", errors.Select(x => $"{x.Key}:{x.DefaultMessageES}: {(x.Properties is not null ? string.Join("|", x.Properties.Select(x => $"{x.Key}: {x.Value}")) : null)}"));
 }
