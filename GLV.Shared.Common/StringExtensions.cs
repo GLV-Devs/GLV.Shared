@@ -7,6 +7,34 @@ namespace GLV.Shared.Common;
 
 public static class StringExtensions
 {
+    public static bool ContainsAny(this string str, params string[] candidates)
+        => ContainsAny(str.AsSpan(), StringComparison.Ordinal, candidates);
+
+    public static bool ContainsAny(this ReadOnlySpan<char> str, params string[] candidates)
+        => ContainsAny(str, StringComparison.Ordinal, candidates);
+
+    public static bool ContainsAny(this string str, StringComparison comparisonType, params string[] candidates)
+        => ContainsAny(str.AsSpan(), comparisonType, candidates);
+
+    public static bool ContainsAny(this ReadOnlySpan<char> str, StringComparison comparisonType, params string[] candidates)
+    {
+        for (int i = 0; i < candidates.Length; i++)
+            if (str.Contains(candidates[i], comparisonType)) 
+                return true;
+        return false;
+    }
+
+    public static bool ContainsAny(this string str, IEnumerable<string> candidates, StringComparison comparisonType = StringComparison.Ordinal)
+        => ContainsAny(str.AsSpan(), candidates);
+
+    public static bool ContainsAny(this ReadOnlySpan<char> str, IEnumerable<string> candidates, StringComparison comparisonType = StringComparison.Ordinal)
+    {
+        foreach (var candidate in candidates)
+            if (str.Contains(candidate, comparisonType))
+                return true;
+        return false;
+    }
+
     public static bool ContainsAny(this string str, ReadOnlySpan<char> candidates)
         => ContainsAny(str.AsSpan(), candidates);
 

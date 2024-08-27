@@ -46,6 +46,19 @@ public static class ServiceExtensions
         return scope;
     }
 
+    public static IServiceScope GetKeyedService<T>(this IServiceScope scope, object? serviceKey, out T? service)
+    {
+        service = scope.ServiceProvider.GetKeyedService<T>(serviceKey);
+        return scope;
+    }
+
+    public static IServiceScope GetRequiredKeyedService<T>(this IServiceScope scope, object? serviceKey, out T service)
+        where T : notnull
+    {
+        service = scope.ServiceProvider.GetRequiredKeyedService<T>(serviceKey);
+        return scope;
+    }
+
     public static IServiceCollection ConfigureGLVDatabase<TContext>(
         this IServiceCollection services, 
         IHostApplicationBuilder builder,
