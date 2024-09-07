@@ -7,14 +7,14 @@ namespace GLV.Shared.Data;
 
 public static class ResponseResultDataExtension
 {
-    public static async Task<ResponseResult> AssertSuccess(this Task<ResponseResult> result)
-        => (await result).AssertSuccess();
+    public static async Task<ResponseResult> AssertSuccess(this Task<ResponseResult> result, string? errorMessage = null)
+        => (await result).AssertSuccess(errorMessage);
 
-    public static async Task<ResponseResultData<T>> AssertSuccess<T>(this Task<ResponseResultData<T>> result)
-        => (await result).AssertSuccess();
+    public static async Task<ResponseResultData<T>> AssertSuccess<T>(this Task<ResponseResultData<T>> result, string? errorMessage = null)
+        => (await result).AssertSuccess(errorMessage);
 
-    public static async Task<T> GetData<T>(this Task<ResponseResultData<T>> result)
-        => (await result).GetData();
+    public static async Task<T> GetData<T>(this Task<ResponseResultData<T>> result, string? errorMessage = null)
+        => (await result).GetData(errorMessage);
 }
 
 public readonly struct ResponseResult(HttpStatusCode code, IEnumerable<ErrorMessage>? errors = null)
@@ -23,8 +23,12 @@ public readonly struct ResponseResult(HttpStatusCode code, IEnumerable<ErrorMess
     public HttpStatusCode StatusCode { get; } = code;
     public bool IsSuccess => Errors is null;
 
-    public ResponseResult AssertSuccess() 
-        => IsSuccess is false ? throw new ResponseResultFailureException(Errors!) : this;
+    public ResponseResult AssertSuccess(string? errorMessage = null) 
+        => IsSuccess is false 
+            ? string.IsNullOrWhiteSpace(errorMessage) 
+                ? throw new ResponseResultFailureException(Errors!) 
+                : throw new ResponseResultFailureException(errorMessage, Errors!) 
+            : this;
 
     public ResponseResultData<T> PropagateError<T>()
         => IsSuccess
@@ -54,15 +58,19 @@ public readonly struct ResponseResultData<T>(T data, HttpStatusCode code, IEnume
         return false;
     }
 
-    public T GetData()
+    public T GetData(string? errorMessage = null)
     {
-        AssertSuccess();
+        AssertSuccess(errorMessage);
         Debug.Assert(Data is not null);
         return Data;
     }
 
-    public ResponseResultData<T> AssertSuccess() 
-        => IsSuccess is false ? throw new ResponseResultFailureException(Errors!) : this;
+    public ResponseResultData<T> AssertSuccess(string? errorMessage = null) 
+        => IsSuccess is false 
+            ? string.IsNullOrWhiteSpace(errorMessage) 
+                ? throw new ResponseResultFailureException(Errors!)
+                : throw new ResponseResultFailureException(errorMessage, Errors!)
+            : this;
 
     public ResponseResult PropagateError()
         => IsSuccess

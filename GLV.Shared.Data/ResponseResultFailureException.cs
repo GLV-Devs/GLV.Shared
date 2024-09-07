@@ -16,6 +16,11 @@ public class ResponseResultFailureException : Exception
         Errors = errors.ToArray();
     }
 
+    public ResponseResultFailureException(string message, IEnumerable<ErrorMessage> errors) : this(message + "::" + SerializeErrorMessages(errors))
+    {
+        Errors = errors.ToArray();
+    }
+
     public ResponseResultFailureException(string message) : base(message) { }
     public ResponseResultFailureException(string message, Exception inner) : base(message, inner) { }
 
