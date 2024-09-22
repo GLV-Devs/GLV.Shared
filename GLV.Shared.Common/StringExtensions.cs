@@ -61,16 +61,16 @@ public static class StringExtensions
     }
 
     public static string ToHexViaLookup32(this byte[] bytes, int startIndex, int length)
-        => ToHexViaLookup32(bytes.AsSpan(startIndex, length));
+        => ToHexViaLookup32((ReadOnlySpan<byte>)bytes.AsSpan(startIndex, length));
 
     public static string ToHexViaLookup32(this byte[] bytes, int startIndex)
-        => ToHexViaLookup32(bytes.AsSpan(startIndex));
+        => ToHexViaLookup32((ReadOnlySpan<byte>)bytes.AsSpan(startIndex));
 
     public static string ToHexViaLookup32(this byte[] bytes)
-        => ToHexViaLookup32(bytes.AsSpan());
+        => ToHexViaLookup32((ReadOnlySpan<byte>)bytes.AsSpan());
 
     public static string ToHexViaLookup32(this Span<byte> bytes)
-        => ToHexViaLookup32(bytes);
+        => ToHexViaLookup32((ReadOnlySpan<byte>)bytes);
 
     public static string ToHexViaLookup32(this ReadOnlySpan<byte> bytes)
     {
