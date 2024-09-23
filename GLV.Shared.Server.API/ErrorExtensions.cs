@@ -1,5 +1,6 @@
 ﻿using GLV.Shared.Data;
 using Microsoft.AspNetCore.Identity;
+using System.Net;
 
 namespace GLV.Shared.Server.API;
 
@@ -13,6 +14,7 @@ public static class ErrorExtensions
             errors.AddError(msg);
         }
 
+        errors.RecommendedCode ??= HttpStatusCode.InternalServerError;
         return ref errors;
     }
 }

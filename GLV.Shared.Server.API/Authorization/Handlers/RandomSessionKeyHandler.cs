@@ -37,21 +37,19 @@ public class RandomSessionKeyHandler(IOptions<IdentityOptions> identityOptions, 
     {
         var utcNow = TimeProvider.GetUtcNow();
 
+        var exp = Options.RandomSessionKeyExpiration == TimeSpan.Zero 
+            ? TimeSpan.FromDays(365 * 100)
+            : Options.RandomSessionKeyExpiration;
+
         properties ??= new();
-        properties.ExpiresUtc = utcNow + Options.RandomSessionKeyExpiration;
+        properties.ExpiresUtc = utcNow + exp;
 
         var key = sessionManager.CreateNewSession(CreateTicket(user, properties));
         properties.Items["key"] = key;
 
-        user.AddIdentity(new ClaimsIdentity(new Claim[]
-        {
-            new(UserAuthConstants.UserLevelClaimsType, "0"),
-            new(UserAuthConstants.RefreshableClaimsType, "true")
-        }, Scheme.Name));
-
         Logger.LogInformation("User {user} signed in through scheme {scheme}, session key: {key}", user.Identity!.Name, Scheme.Name, key);
 
-        Context.Features.Set(new SessionKey(key, utcNow, Options.RandomSessionKeyExpiration));
+        Context.Features.Set(new SessionKey(key, utcNow, exp));
     }
 
     protected override Task HandleSignOutAsync(AuthenticationProperties? properties)
@@ -74,8 +72,12 @@ public class RandomSessionKeyHandler(IOptions<IdentityOptions> identityOptions, 
     [return: NotNullIfNotNull(nameof(ticket))]
     private AuthenticationTicket? RefreshTicket(AuthenticationTicket? ticket)
     {
+        var exp = Options.RandomSessionKeyExpiration == TimeSpan.Zero
+            ? TimeSpan.FromDays(365 * 100)
+            : Options.RandomSessionKeyExpiration;
+
         if (ticket is not null)
-            ticket.Properties.ExpiresUtc = TimeProvider.GetUtcNow() + Options.RandomSessionKeyExpiration;
+            ticket.Properties.ExpiresUtc = TimeProvider.GetUtcNow() + exp;
         return ticket;
     }
 
