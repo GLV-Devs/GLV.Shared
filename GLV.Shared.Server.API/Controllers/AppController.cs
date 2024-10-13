@@ -81,6 +81,13 @@ public abstract class AppController<TUser>(ILogger<AppController<TUser>> logger)
     }
 
     [NonAction]
+    public virtual async Task WriteResultAsJson(object? result, HttpStatusCode code)
+    {
+        HttpContext.Response.StatusCode = (int)code;
+        await HttpContext.Response.WriteAsJsonAsync(result.CreateServerResponse(HttpContext.TraceIdentifier));
+    }
+
+    [NonAction]
     public virtual IActionResult Forbidden(object? value)
         => value is null ? Forbidden() : new ObjectResult(value) { StatusCode = (int)HttpStatusCode.Forbidden };
 
@@ -96,6 +103,7 @@ public abstract class AppController<TUser>(ILogger<AppController<TUser>> logger)
     public ValueTask<TUser?> GetUser()
         => HttpContext.GetUser(User, UserManager);
 
+    [NonAction]
     protected bool ProcessCommandToken(string? token, ref ErrorList errors, [NotNullWhen(true)] out string? command)
     {
         command = null;

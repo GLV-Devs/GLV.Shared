@@ -95,6 +95,12 @@ public static partial class ErrorMessagesExtensions
         return ref list.AddError(ErrorMessages.LoginLockedOut(user));
     }
 
+    public static ref ErrorList AddBadRefreshToken(this ref ErrorList list)
+    {
+        list.RecommendedCode = HttpStatusCode.Forbidden;
+        return ref list.AddError(ErrorMessages.BadRefreshToken());
+    }
+
     public static ref ErrorList AddBadLogin(this ref ErrorList list)
     {
         list.RecommendedCode = HttpStatusCode.Forbidden;
@@ -153,6 +159,12 @@ public static partial class ErrorMessagesExtensions
     {
         list.RecommendedCode = HttpStatusCode.BadRequest;
         return ref list.AddError(ErrorMessages.IllegalCharacter(property, characters));
+    }
+
+    public static ref ErrorList AddBadBase64(this ref ErrorList list, string property, string error)
+    {
+        list.RecommendedCode = HttpStatusCode.BadRequest;
+        return ref list.AddError(ErrorMessages.BadBase64(property, error));
     }
 
     public static ref ErrorList AddInvalidProperty(this ref ErrorList list, string property)

@@ -20,11 +20,27 @@ public class RandomSessionKeyHandler(IOptions<IdentityOptions> identityOptions, 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var key = GetRandomSessionKeyOrNull();
-        return Task.FromResult(key is null
-                || sessionManager.TryGetSession(key, out var session) is false
-                || session.Ticket.Properties.ExpiresUtc < TimeProvider.GetUtcNow()
-            ? AuthenticateResult.NoResult()
-            : AuthenticateResult.Success(RefreshTicket(session.Ticket)));
+        // It's rather ugly, but it's behaving weird so I need it to be verbose to debug it line by line
+
+        if (string.IsNullOrWhiteSpace(key) is false)
+        {
+            if (sessionManager.TryGetSession(key, out var session))
+            {
+                if (session.Ticket.Properties.ExpiresUtc > TimeProvider.GetUtcNow())
+                    return Task.FromResult(AuthenticateResult.Success(RefreshTicket(session.Ticket)));
+                else
+                    Logger.LogDebug(
+                        "An user attempted to perform an authenticated request with a session token that expired at {expirationTime}, or {elapsed} ago",
+                        session.Ticket.Properties.ExpiresUtc,
+                        TimeProvider.GetUtcNow() - session.Ticket.Properties.ExpiresUtc);
+            }
+            else
+                Logger.LogTrace("An user attempted to perform an authenticated request with a token session that could not be found in the Session Store");
+        }
+        else
+            Logger.LogTrace("An user attempted to perform an authenticated request with an empty session token");
+
+        return Task.FromResult(AuthenticateResult.NoResult());
     }
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)

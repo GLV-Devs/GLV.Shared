@@ -82,6 +82,22 @@ public static class ModelManipulationHelper
         return false;
     }
 
+    public static bool IsNull<T>(
+        this ref ErrorList errors, 
+        [NotNullWhen(false)] Nullable<T> value, 
+        [CallerArgumentExpression(nameof(value))] string property = "")
+        where T : struct
+    {
+        if (value is null)
+        {
+            errors.RecommendedCode = HttpStatusCode.BadRequest;
+            errors.AddError(ErrorMessages.EmptyProperty(property));
+            return true;
+        }
+
+        return false;
+    }
+
     public static bool IsEmptyString(this ref ErrorList errors, [NotNullWhen(false)] string? update,
         [CallerArgumentExpression(nameof(update))] string property = "")
     {

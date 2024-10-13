@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Microsoft.VisualBasic.FileIO;
+using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
@@ -6,6 +7,17 @@ namespace GLV.Shared.Data;
 
 public static partial class ErrorMessages
 {
+    public static ErrorMessage BadBase64(string property, string error)
+    => new(
+            $"La propiedad {property} no representa un texto en formato Base64 bien formado. Mensaje de error: {error}",
+            nameof(BadBase64),
+            new ErrorMessageProperty[]
+            {
+                new(nameof(property), property),
+                new(nameof(error), error)
+            }
+        );
+
     public static ErrorMessage InvalidCommandToken()
     => new(
             $"El token de comando es inválido",
@@ -162,6 +174,13 @@ public static partial class ErrorMessages
             {
                 new(nameof(user), user)
             }
+        );
+    
+    public static ErrorMessage BadRefreshToken()
+        => new(
+            "El token de refrescamiento es inválido. Coloquelo uno válido en el encabezado de Authorize. Es posible que su token haya expirado o que ya haya sido utilizado.",
+            nameof(BadRefreshToken),
+            null
         );
 
     public static ErrorMessage BadLogin()

@@ -82,7 +82,11 @@ public static class ServiceExtensions
 
             services.AddDbContext<TContext>(x => x.UseSqlServer(
                 dbconf.SQLServerConnectionString,
-                o => o.MigrationsAssembly(sqlServerMigrationsAssemblyName)
+                o =>
+                {
+                    o.MigrationsAssembly(sqlServerMigrationsAssemblyName);
+                    o.EnableRetryOnFailure();
+                }
             ));
         }
         else if (dbconf.DatabaseType is DatabaseType.MySQL)
@@ -91,9 +95,14 @@ public static class ServiceExtensions
                 throw new InvalidOperationException($"SQLServerConnectionString for {contextName} is not set despite MySQL being selected");
 
             services.AddDbContext<TContext>(x => x.UseMySql(
-                dbconf.SQLServerConnectionString,
+                dbconf.SQLServerConnectionString,   
                 ServerVersion.AutoDetect(dbconf.SQLServerConnectionString),
-                o => o.MigrationsAssembly(mySqlMigrationsAssemblyName)
+                o =>
+                {
+                    o.MigrationsAssembly(mySqlMigrationsAssemblyName);
+                    o.EnableRetryOnFailure(10);
+                    o.CommandTimeout(60);
+                }
             ));
         }
         else if (dbconf.DatabaseType is DatabaseType.SQLite)

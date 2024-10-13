@@ -1,12 +1,14 @@
 ﻿using System.Buffers;
 using System.Collections.Frozen;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace GLV.Shared.Common;
 
 public static class StringExtensions
 {
+    public static string ToStringOrDefault<T>(this Nullable<T> value, string @default, string? format = null, IFormatProvider? formatProvider = null)
+        where T : struct, IFormattable 
+        => value is null ? @default : value.Value.ToString(format, formatProvider);
+
     public static bool ContainsAny(this string str, params string[] candidates)
         => ContainsAny(str.AsSpan(), StringComparison.Ordinal, candidates);
 

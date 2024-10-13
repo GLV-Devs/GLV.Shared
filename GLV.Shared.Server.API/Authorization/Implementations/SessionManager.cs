@@ -41,7 +41,7 @@ public class SessionManager : ISessionManager
     {
         foreach (var (key, ticket) in SessionStore.ToArray())
         {
-            if (ticket.Ticket.Properties.ExpiresUtc is DateTimeOffset exp && exp > DateTimeOffset.Now)
+            if (ticket.Ticket.Properties.ExpiresUtc > DateTimeOffset.UtcNow)
             {
                 SessionStore.TryRemove(key, out _);
                 OnSessionDeleted?.Invoke(key, ticket);

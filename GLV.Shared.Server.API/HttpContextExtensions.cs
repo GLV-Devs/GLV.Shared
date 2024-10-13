@@ -1,10 +1,18 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using GLV.Shared.Data;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+using System.Net;
 
 namespace GLV.Shared.Server.API;
 
 public static class HttpContextExtensions
 {
+    public static void SetResponseStatusCode(this HttpContext context, ref ErrorList errors)
+    {
+        if (errors.RecommendedCode is HttpStatusCode code)
+            context.Response.StatusCode = (int)code;
+    }
+
     public static string GetRequestingClientIPAddress(this HttpContext context)
     {
         var ipAddress = context.Connection.RemoteIpAddress?.ToString();
