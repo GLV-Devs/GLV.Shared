@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace GLV.Shared.Server.API;
+namespace GLV.Shared.Hosting;
 public static class ServicesHelper
 {
     public static void RegisterDecoratedWorkers(this IServiceCollection services)
@@ -131,7 +131,7 @@ public static class ServicesHelper
             Type optionsConfigurationCallbackType
             )
     {
-        name ??= Microsoft.Extensions.Options.Options.DefaultName; // From Microsoft.Extensions.Configuration.Abstractions
+        name ??= Options.DefaultName; // From Microsoft.Extensions.Configuration.Abstractions
         section ??= type.Name;
 
         var closure = decoratedOptionsClosureConstructor.Invoke(new object[] { section, config });

@@ -1,4 +1,6 @@
-﻿namespace GLV.Shared.Common;
+﻿using System.Net;
+
+namespace GLV.Shared.Common;
 public static class GLVSoftworksInfo
 {
     private static DateTime nextWatermarkRequest = default;

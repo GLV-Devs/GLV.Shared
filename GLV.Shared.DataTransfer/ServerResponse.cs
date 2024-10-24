@@ -65,6 +65,6 @@ public static class ServerResponseExtensions
 
     public static IEnumerable<ErrorMessage> GetErrors(this ServerResponse? response)
         => response is not null and { Data: not null, DataType: nameof(ErrorList) }
-            ? response.Data.Cast<ErrorMessage>()
+            ? response.Data.Cast<JsonElement>().Select(x => x.Deserialize<ErrorMessage>(JsonSerializerOptions)!)
             : new[] { new ErrorMessage("The server did not return any data", "local_NoResponse", null) };
 }

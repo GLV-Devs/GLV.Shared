@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net8.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<Version>$(AssemblyVersion)</Version>
+	<FileVersion>$(AssemblyVersion)</FileVersion>
+	<AssemblyVersion>0.0.*</AssemblyVersion>
+	<Title>GLV Shared Common Hosting Classes Library</Title>
+	<Authors>Diego Garcia</Authors>
+	<Company>GLV Softworks</Company>
+	<Copyright>Diego Garcia ©️ 2024</Copyright>
+	<RepositoryType>git</RepositoryType>
+	<NeutralLanguage>en</NeutralLanguage>
+	<Deterministic>False</Deterministic>
+	<InvariantGlobalization>false</InvariantGlobalization>
+	<NoWarn>7035</NoWarn>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.2" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
+		<PackageReference Include="Serilog" Version="4.0.2" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+	</ItemGroup>
+
+</Project>

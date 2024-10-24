@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
-namespace GLV.Shared.Server.API.Workers;
+namespace GLV.Shared.Hosting.Workers;
 
 public static class BackgroundTaskStore
 {

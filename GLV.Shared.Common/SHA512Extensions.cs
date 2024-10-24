@@ -10,7 +10,7 @@ public static class SHA512Extensions
         => ToSHA512(bytes.AsSpan());
 
     public static string ToSHA512(this Span<byte> bytes)
-        => ToSHA512(bytes);
+        => ToSHA512((ReadOnlySpan<byte>)bytes);
 
     public static string ToSHA512(this ReadOnlySpan<byte> bytes)
     {

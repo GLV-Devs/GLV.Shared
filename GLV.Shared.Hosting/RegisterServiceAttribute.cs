@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace GLV.Shared.Server.API;
+namespace GLV.Shared.Hosting;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 public sealed class RegisterServiceAttribute(Type? type = null) : Attribute

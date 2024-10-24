@@ -45,6 +45,7 @@
 	  <ProjectReference Include="..\GLV.Shared.DataTransfer\GLV.Shared.DataTransfer.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.EntityFramework\GLV.Shared.EntityFramework.csproj" />
+	  <ProjectReference Include="..\GLV.Shared.Hosting\GLV.Shared.Hosting.csproj" />
 	</ItemGroup>
 	
 </Project>

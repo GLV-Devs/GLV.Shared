@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace GLV.Shared.Server.API.Workers;
+namespace GLV.Shared.Hosting.Workers;
 
 [RegisterWorker]
 public class BackgroundTaskStoreSweeper(ILogger<BackgroundTaskStoreSweeper> logger) : BackgroundService
