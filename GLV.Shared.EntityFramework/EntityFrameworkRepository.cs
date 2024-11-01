@@ -13,7 +13,7 @@ public abstract class EntityFrameworkRepository<TEntity, TKey, TView, TCreateMod
 {
     public DbContext Context { get; } = context ?? throw new ArgumentNullException(nameof(context));
 
-    protected abstract Expression<Func<TEntity, TView>> ViewExpression { get; }
+    public abstract Expression<Func<TEntity, TView>> ViewExpression { get; }
 
     protected virtual Expression<Func<TEntity, bool>> Match(TEntity entity)
         => x => x.Id.Equals(entity.Id);

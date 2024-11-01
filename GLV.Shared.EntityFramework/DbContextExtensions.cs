@@ -1,10 +1,18 @@
 ﻿using GLV.Shared.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GLV.Shared.EntityFramework;
 
 public static class DbContextExtensions
 {
+    public static async Task MigrateDatabase<TContext>(this IServiceProvider services) where TContext : DbContext
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<TContext>();
+        await db.Database.MigrateAsync();
+    }
+
     public static async ValueTask<SuccessResult> TrySaveChanges(this DbContext context)
     {
         try
