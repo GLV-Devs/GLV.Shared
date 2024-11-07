@@ -15,6 +15,6 @@ public static partial class DataRegexes
     [GeneratedRegex(@"Data Source=([a-zA-Z{}/\\.:]+)")]
     public static partial Regex SQLiteConnectionStringFilePath();
 
-    [GeneratedRegex(@"duplicate entry .* for\b.+\s'(?<key>.+)'", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"duplicate entry '(?<key>.*)' for\b.+\s+'(.+_)?(?<index>.+)'", RegexOptions.IgnoreCase)]
     public static partial Regex DatabaseExceptionMessageDuplicateKey();
 }

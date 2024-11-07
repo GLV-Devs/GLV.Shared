@@ -70,9 +70,9 @@ public class RandomSessionKeyHandler(IOptions<IdentityOptions> identityOptions, 
 
     protected override Task HandleSignOutAsync(AuthenticationProperties? properties)
     {
-        var key = properties?.Items["key"];
-        if (key is not null)
-            sessionManager.DestroySession(key);
+        if (properties?.Items.TryGetValue("key", out var key) is true)
+            sessionManager.DestroySession(key!);
+
         return Task.CompletedTask;
     }
 

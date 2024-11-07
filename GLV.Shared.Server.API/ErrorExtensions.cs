@@ -14,7 +14,6 @@ public static class ErrorExtensions
             errors.AddError(msg);
         }
 
-        errors.RecommendedCode ??= HttpStatusCode.InternalServerError;
         return ref errors;
     }
 }

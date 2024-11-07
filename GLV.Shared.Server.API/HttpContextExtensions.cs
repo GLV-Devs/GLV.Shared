@@ -18,7 +18,7 @@ public static class HttpContextExtensions
         var ipAddress = context.Connection.RemoteIpAddress?.ToString();
 
         if (string.IsNullOrEmpty(ipAddress) is false)
-            return getIp(ipAddress);
+            return getIp(ipAddress); 
         
         ipAddress = context.GetServerVariable("HTTP_X_FORWARDED_FOR");
 
