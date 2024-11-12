@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Runtime.CompilerServices;
 
 namespace GLV.Shared.Data;
 
@@ -31,6 +32,10 @@ public static class ErrorListExtensions
         => list._errors?.Clear();
 }
 
-public readonly record struct ErrorMessageProperty(string Key, string? Value);
+public readonly record struct ErrorMessageProperty(string Key, string? Value)
+{
+    public static ErrorMessageProperty Create<T>(T value, [CallerArgumentExpression(nameof(value))] string key = "")
+        => new(key, value?.ToString());
+}
 
 public readonly record struct ErrorMessage(string? DefaultMessageES, string Key, IEnumerable<ErrorMessageProperty>? Properties);

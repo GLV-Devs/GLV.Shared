@@ -2,6 +2,7 @@
 using System.Net;
 using System.Text.Json;
 using GLV.Shared.Data;
+using GLV.Shared.Data.JsonConverters;
 
 namespace GLV.Shared.DataTransfer;
 
@@ -53,15 +54,20 @@ public static class ServerResponseExtensions
         PropertyNameCaseInsensitive = true
     };
 
+    static ServerResponseExtensions()
+    {
+        JsonSerializerOptions.Converters.Add(SnowflakeConverter.Instance);
+    }
+
     public static IEnumerable<T> GetData<T>(this ServerResponse response)
         => response is { Data: null } or { DataType: null or "" }
             ? throw new ArgumentException("this ServerResponse did not return data")
             : response.Data.Cast<JsonElement>().Select(x => x.Deserialize<T>(JsonSerializerOptions)!);
 
-    public static T GetSingleData<T>(this ServerResponse response)
+    public static T GetSingleData<T>(this ServerResponse response) 
         => response is { Data: null } or { DataType: null or "" }
-            ? throw new ArgumentException("this ServerResponse did not return data")
-            : response.Data.Cast<JsonElement>().Select(x => x.Deserialize<T>(JsonSerializerOptions)!).Single();
+                ? throw new ArgumentException("this ServerResponse did not return data")
+                : response.Data.Cast<JsonElement>().Select(x => x.Deserialize<T>(JsonSerializerOptions)!).Single();
 
     public static IEnumerable<ErrorMessage> GetErrors(this ServerResponse? response)
         => response is not null and { Data: not null, DataType: nameof(ErrorList) }
