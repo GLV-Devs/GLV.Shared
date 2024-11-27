@@ -59,7 +59,7 @@ public static class RepositoryHelpers
         if (result.TryGetResult(out var created))
         {
             var saveResult = await repository.SaveChanges();
-            return saveResult.IsSuccess ? repository.GetView(created) : saveResult.ErrorMessages;
+            return saveResult.IsSuccess ? await repository.GetViewQueryable(created).FirstAsync() : saveResult.ErrorMessages;
         }
 
         return result.ErrorMessages;

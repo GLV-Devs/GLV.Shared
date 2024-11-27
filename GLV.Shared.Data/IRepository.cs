@@ -10,6 +10,8 @@ public interface IRepository<TModel, TKey, TView, TCreateModel, TUpdateModel>
 
     public IQueryable<TView> GetViews(IQueryable<TModel> entities);
 
+    public IQueryable<TView> GetViewQueryable(TModel model);
+
     public TView GetView(TModel model);
 
     public ValueTask<SuccessResult<TView>?> Update(TKey key, TUpdateModel updateModel);

@@ -21,6 +21,9 @@ public abstract class EntityFrameworkRepository<TEntity, TKey, TView, TCreateMod
     protected virtual Expression<Func<TEntity, bool>> Match(TKey key)
         => x => x.Id.Equals(key);
 
+    public IQueryable<TView> GetViewQueryable(TEntity model)
+        => GetViews(Get().Where(Match(model)));
+
     public virtual async ValueTask<SuccessResult<TEntity>> Find(TKey id)
     {
         var t = Get();
