@@ -1,6 +1,4 @@
-﻿using GLV.Shared.Server.API.Configuration;
-
-namespace GLV.Shared.Server.API.Options;
+﻿namespace GLV.Shared.EntityFrameworkHosting.Options;
 
 public record ServerDatabaseConfiguration(
     DatabaseType DatabaseType,

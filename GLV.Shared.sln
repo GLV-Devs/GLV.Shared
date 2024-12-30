@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GLV.CodeGenerators.CRUDMode
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLV.Shared.Hosting", "GLV.Shared.Hosting\GLV.Shared.Hosting.csproj", "{2E3BEA51-30DF-4717-9920-8AD0D3C3CFEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLV.Shared.EntityFrameworkHosting", "GLV.Shared.EntityFrameworkHosting\GLV.Shared.EntityFrameworkHosting.csproj", "{85F54CA7-BD9B-49D7-88B5-07DC2EBF2210}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -53,6 +55,10 @@ Global
 		{2E3BEA51-30DF-4717-9920-8AD0D3C3CFEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E3BEA51-30DF-4717-9920-8AD0D3C3CFEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2E3BEA51-30DF-4717-9920-8AD0D3C3CFEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{85F54CA7-BD9B-49D7-88B5-07DC2EBF2210}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{85F54CA7-BD9B-49D7-88B5-07DC2EBF2210}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{85F54CA7-BD9B-49D7-88B5-07DC2EBF2210}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{85F54CA7-BD9B-49D7-88B5-07DC2EBF2210}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

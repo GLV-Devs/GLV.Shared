@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Version>$(AssemblyVersion)</Version>
@@ -19,31 +19,33 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MessagePack" Version="2.5.172" />
-		<PackageReference Include="MessagePack.Annotations" Version="2.5.172" />
-		<PackageReference Include="MessagePack.AspNetCoreMvcFormatter" Version="2.5.172" />
-		<PackageReference Include="MessagePackAnalyzer" Version="2.5.172">
+		<PackageReference Include="MessagePack" Version="3.1.1" />
+		<PackageReference Include="MessagePack.Annotations" Version="3.1.1" />
+		<PackageReference Include="MessagePack.AspNetCoreMvcFormatter" Version="3.1.1" />
+		<PackageReference Include="MessagePackAnalyzer" Version="3.1.1">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
 		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
-		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.10" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Analyzers" Version="8.0.10" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Analyzers" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Serilog" Version="4.0.2" />
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.8.1" />
+		<PackageReference Include="Serilog" Version="4.2.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\GLV.Shared.Common\GLV.Shared.Common.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.DataTransfer\GLV.Shared.DataTransfer.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
+	  <ProjectReference Include="..\GLV.Shared.EntityFrameworkHosting\GLV.Shared.EntityFrameworkHosting.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.EntityFramework\GLV.Shared.EntityFramework.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Hosting\GLV.Shared.Hosting.csproj" />
 	</ItemGroup>

@@ -1,4 +1,4 @@
-﻿namespace GLV.Shared.Server.API.Configuration;
+﻿namespace GLV.Shared.EntityFrameworkHosting;
 
 public enum DatabaseType
 {

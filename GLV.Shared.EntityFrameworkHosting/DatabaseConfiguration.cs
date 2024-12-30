@@ -1,4 +1,4 @@
-﻿namespace GLV.Shared.Server.API.Configuration;
+﻿namespace GLV.Shared.EntityFrameworkHosting;
 
 public record class DatabaseConfiguration(DatabaseType DatabaseType, string? SQLServerConnectionString, string? SQLiteConnectionString)
 {

@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<Version>$(AssemblyVersion)</Version>
+	<FileVersion>$(AssemblyVersion)</FileVersion>
+	<AssemblyVersion>0.0.*</AssemblyVersion>
+	<Title>GLV Shared Common Server Classes Library</Title>
+	<Authors>Diego Garcia</Authors>
+	<Company>GLV Softworks</Company>
+	<Copyright>Diego Garcia ©️ 2024</Copyright>
+	<RepositoryType>git</RepositoryType>
+	<NeutralLanguage>en</NeutralLanguage>
+	<Deterministic>False</Deterministic>
+	<InvariantGlobalization>false</InvariantGlobalization>
+	<NoWarn>7035</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.0" />
+	<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+	<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
+	<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
+	<PackageReference Include="Serilog" Version="4.2.0" />	
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GLV.Shared.EntityFramework\GLV.Shared.EntityFramework.csproj" />
+    <ProjectReference Include="..\GLV.Shared.Hosting\GLV.Shared.Hosting.csproj" />
+  </ItemGroup>
+
+</Project>
