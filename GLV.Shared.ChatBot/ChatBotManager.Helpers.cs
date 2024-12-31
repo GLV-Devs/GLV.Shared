@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -16,13 +17,13 @@ public partial class ChatBotManager
         public static ActionInfoEqualityComparer Comparer { get; } = new();
 
         public bool Equals(ActionInfo x, ActionInfo y)
-            => x.ActionType == y.ActionType;
+            => x.Definition.ConversationAction == y.Definition.ConversationAction;
 
         public int GetHashCode([DisallowNull] ActionInfo obj)
-            => obj.ActionType.GetHashCode();
+            => obj.Definition.ConversationAction.GetHashCode();
     }
 
-    public readonly record struct ActionInfo(bool IsDefaultAction, string ActionName, Type ActionType);
+    public readonly record struct ActionInfo(bool IsDefaultAction, ConversationActionDefinition Definition);
 
     public static IEnumerable<ActionInfo> GatherReflectedActions(
         Func<(ConversationActionAttribute Attribute, Type Type), bool>? predicate = null,
@@ -37,42 +38,57 @@ public partial class ChatBotManager
         if (predicate is not null)
             q = q.Where(predicate);
 
-        return q.Select(x => new ActionInfo(x.attr!.IsDefaultAction, x.attr.ActionName ?? x.acti.GetType().Name, x.acti));
+        return q.Select(x => new ActionInfo(
+            x.attr!.IsDefaultAction, 
+            new(
+                x.acti, 
+                x.attr.ActionName ?? x.acti.GetType().Name,
+                x.attr.CommandTrigger,
+                x.attr.CommandDescription
+            )
+        ));
     }
 
     public static ChatBotManager CreateChatBotWithReflectedActions(
-        IConversationStore store,
+        ServiceDescriptor conversationStoreServiceDescription,
         string? chatBotManagerIdentifier = null,
         Func<(ConversationActionAttribute Attribute, Type Type), bool>? predicate = null,
+        Func<UpdateContext, ValueTask<bool>>? updateFilter = null,
+        IServiceCollection? configureServices = null,
         IEnumerable<Assembly>? assemblies = null
     )
     {
+        if (conversationStoreServiceDescription.ServiceType != typeof(IConversationStore))
+            throw new ArgumentException("The store service descriptor doesn't describe a service type of IConversationStore. The implementation type needs only be assignable to it, but the service type MUST be IConversationStore", nameof(conversationStoreServiceDescription));
+
         var actions = GatherReflectedActions(predicate, assemblies);
         ActionInfo? @default = null;
         HashSet<ActionInfo> actionInfos = new(ActionInfoEqualityComparer.Comparer);
         foreach (var action in actions)
         {
-            if (action.ActionType.IsAssignableTo(typeof(ConversationActionBase)) is false)
-                throw new InvalidDataException($"The type {action.ActionType.Name} decorated as action {action.ActionName} is not a sub-class of ConversationActionBase");
+            if (action.Definition.ConversationAction.IsAssignableTo(typeof(ConversationActionBase)) is false)
+                throw new InvalidDataException($"The type {action.Definition.ConversationAction.Name} decorated as action {action.Definition.ActionName} is not a sub-class of ConversationActionBase");
 
             if (action.IsDefaultAction)
             {
                 if (@default is not null)
-                    throw new InvalidDataException($"Found conflicting actions: {@default.Value.ActionName} and {action.ActionName} are marked as the default action within the matching types");
+                    throw new InvalidDataException($"Found conflicting actions: {@default.Value.Definition.ActionName} and {action.Definition.ActionName} are marked as the default action within the matching types");
                 @default = action;
             }
             else if (actionInfos.Add(action) is false)
-                throw new InvalidDataException($"Found conflicting actions: More than one action bears the name of '{action.ActionName}'");
+                throw new InvalidDataException($"Found conflicting actions: More than one action bears the name of '{action.Definition.ActionName}'");
         }
 
         if (@default.HasValue is false)
             throw new InvalidDataException($"Could not locate a valid default action");
 
         return new ChatBotManager(
-            @default.Value.ActionType, 
-            actionInfos.Select(x => new KeyValuePair<string, Type>(x.ActionName, x.ActionType)),
-            store,
-            chatBotManagerIdentifier
+            @default.Value.Definition.ConversationAction, 
+            actionInfos.Select(x => x.Definition),
+            conversationStoreServiceDescription,
+            chatBotManagerIdentifier,
+            updateFilter,
+            configureServices
         );
     }
 }

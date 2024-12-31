@@ -7,7 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\WTelegramBot\src\WTelegramBot.csproj" />
+    <PackageReference Include="WTelegramBot" Version="8.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GLV.Shared.ChatBot\GLV.Shared.ChatBot.csproj" />
   </ItemGroup>
 

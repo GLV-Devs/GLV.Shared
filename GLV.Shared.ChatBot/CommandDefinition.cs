@@ -1,4 +1,5 @@
 ﻿namespace GLV.Shared.ChatBot;
+
 public readonly record struct ConversationCommandDefinition(
     Type ConversationAction,
     string CommandTrigger,

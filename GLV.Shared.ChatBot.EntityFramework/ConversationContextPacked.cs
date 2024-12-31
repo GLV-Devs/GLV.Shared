@@ -34,12 +34,26 @@ public sealed class ConversationContextPacked : IDbModel<ConversationContextPack
         return type;
     }
 
-    public required Guid ConversationId { get; init; }
-    public required long Step { get; init; }
-    public required string? ActiveAction { get; init; }
-    public required string Encoding { get; init; }
-    public required string AssemblyQualifiedContextTypeName { get; init; }
-    public required string JsonData { get; init; }
+    public long Id { get; set; }
+    public Guid ConversationId { get; set; }
+    public long Step { get; set; }
+    public string? ActiveAction { get; set; }
+    public string? Encoding { get; set; }
+    public string? AssemblyQualifiedContextTypeName { get; set; }
+    public string? JsonData { get; set; }
+
+    public void Repack(ConversationContext context)
+    {
+        var contextType = context.GetType();
+        var json = JsonSerializer.Serialize(context, contextType);
+        RegisterType(contextType);
+        ConversationId = context.ConversationId;
+        Step = context.Step;
+        ActiveAction = context.ActiveAction;
+        Encoding = "json";
+        AssemblyQualifiedContextTypeName = contextType.AssemblyQualifiedName!;
+        JsonData = json;
+    }
 
     public static ConversationContextPacked Pack(ConversationContext context)
     {
@@ -60,6 +74,8 @@ public sealed class ConversationContextPacked : IDbModel<ConversationContextPack
     public ConversationContext Unpack()
     {
         Debug.Assert(string.IsNullOrWhiteSpace(AssemblyQualifiedContextTypeName) is false);
+        Debug.Assert(string.IsNullOrWhiteSpace(JsonData) is false);
+
         var contextType = FetchType(AssemblyQualifiedContextTypeName);
         var context = (ConversationContext)JsonSerializer.Deserialize(JsonData, contextType)!;
         context.SetState(Step, ActiveAction);
@@ -70,7 +86,9 @@ public sealed class ConversationContextPacked : IDbModel<ConversationContextPack
 
     public static void BuildModel(DbContext context, EntityTypeBuilder<ConversationContextPacked> mb)
     {
-        mb.HasKey(x => x.ConversationId);
+        mb.HasKey(x => x.Id);
+        mb.Property(x => x.Id).ValueGeneratedOnAdd();
+        mb.HasIndex(x => x.ConversationId).IsUnique(true);
         mb.HasIndex(x => x.AssemblyQualifiedContextTypeName).IsUnique(false);
         mb.HasIndex(x => x.ActiveAction).IsUnique(false);
     }

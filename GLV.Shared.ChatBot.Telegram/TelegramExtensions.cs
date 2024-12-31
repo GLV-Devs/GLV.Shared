@@ -1,34 +1,43 @@
 ﻿using GLV.Shared.Common;
 using System.Runtime.InteropServices;
-using Telegram.Bot.Types;
+using WTelegram.Types;
 using Telegram.Bot.Types.Enums;
+using System.Runtime.CompilerServices;
 
 namespace GLV.Shared.ChatBot.Telegram;
 
 public static class TelegramExtensions
 {
+    public static long UnpackTelegramConversationId(this Guid conversationId)
+        => MemoryMarshal.Cast<Guid, long>(MemoryMarshal.CreateSpan(ref conversationId, 1))[0];
+
+    public static string UnpackTelegramPollTruncatedMD5HashId(this Guid conversationId)
+        => MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref conversationId, 1))[..sizeof(long)].ToHexViaLookup32();
+
     /// <summary>
     /// Gets a conversation id based off of a Telegram Chat Id
     /// </summary>
-    /// <param name="stringId">The telegram chat id</param>
-    /// <param name="botId">An arbitrary id, or unique name for the bot. If <see langword="null"/>, <paramref name="stringId"/> will be used at both heights of the <see cref="Guid"/></param>
+    /// <param name="chatId">The telegram chat id</param>
+    /// <param name="botId">An arbitrary id, or unique name for the bot. If <see langword="null"/>, <paramref name="chatId"/> will be used at both heights of the <see cref="Guid"/></param>
     /// <remarks>
     /// If you want to support conversations across platforms, consider using a different indexing scheme; such as simply using <see cref="Guid.NewGuid()"/> and having a separate set that relates platform specific chat Ids to this Guid
     /// </remarks>
-    public static Guid GetTelegramMessageConversationId(long stringId, string? botId)
+    public static Guid GetTelegramMessageConversationId(long chatId, string? botId)
     {
         Guid id = default;
         if (string.IsNullOrWhiteSpace(botId))
         {
             var span = MemoryMarshal.Cast<Guid, long>(MemoryMarshal.CreateSpan(ref id, 1));
-            span[0] = stringId;
-            span[1] = stringId;
+            span[0] = chatId;
+            span[1] = chatId;
         }
         else
         {
-            MemoryMarshal.Cast<Guid, long>(MemoryMarshal.CreateSpan(ref id, 1))[0] = stringId;
+            MemoryMarshal.Cast<Guid, long>(MemoryMarshal.CreateSpan(ref id, 1))[0] = chatId;
             var span = MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref id, 1));
-            botId.TryHashToMD5(span[sizeof(long)..]);
+            Span<byte> md5buffer = stackalloc byte[Unsafe.SizeOf<Guid>()];
+            botId.TryHashToMD5(md5buffer);
+            md5buffer[..sizeof(long)].CopyTo(span[sizeof(long)..]);
         }
         return id;
     }
@@ -50,7 +59,11 @@ public static class TelegramExtensions
         stringId.TryHashToMD5(span);
 
         if (string.IsNullOrWhiteSpace(botId) is false)
-            botId.TryHashToMD5(span[sizeof(long)..]);
+        {
+            Span<byte> md5buffer = stackalloc byte[Unsafe.SizeOf<Guid>()];
+            botId.TryHashToMD5(md5buffer);
+            md5buffer[..sizeof(long)].CopyTo(span[sizeof(long)..]);
+        }
 
         return id;
     }

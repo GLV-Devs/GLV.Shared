@@ -25,8 +25,6 @@ public abstract class ConversationActionBase
         private set;
     }
 
-    public IConversationStore ConversationStore => ChatBotManager.ConversationStore;
-
     /// <summary>
     /// The ChatBotManager available during this action
     /// </summary>
@@ -36,6 +34,18 @@ public abstract class ConversationActionBase
     public ChatBotManager ChatBotManager
     {
         get => field ?? throw new InvalidOperationException("ChatBotManager property is only available whilst performing an action");
+        private set;
+    }
+
+    /// <summary>
+    /// The ConversationStore available during this action
+    /// </summary>
+    /// <remarks>
+    /// This property is only accesible whilst performing an action (i.e. inside <see cref="PerformAsync"/>). And will throw an exception if an attempt is made to access it otherwise
+    /// </remarks>
+    public IConversationStore ConversationStore
+    {
+        get => field ?? throw new InvalidOperationException("ConversationStore property is only available whilst performing an action");
         private set;
     }
 
@@ -51,7 +61,7 @@ public abstract class ConversationActionBase
         private set;
     }
 
-    internal async Task PerformActions(ConversationContext context, UpdateContext update, ChatBotManager manager)
+    internal async Task PerformActions(IConversationStore store, ConversationContext context, UpdateContext update, ChatBotManager manager)
     {
         Debug.Assert(context is not null);
         Debug.Assert(update is not null);
@@ -60,16 +70,18 @@ public abstract class ConversationActionBase
         Context = context;
         BotClient = update.Client;
         ChatBotManager = manager;
+        ConversationStore = store;
         try
         {
             await PerformAsync(update);
-            await ConversationStore.SaveChanges(Context);
+            await store.SaveChanges(Context);
         }
         finally
         {
             Context = null!;
             BotClient = null!;
             ChatBotManager = null!;
+            ConversationStore = null!;
         }
     }
 

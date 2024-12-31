@@ -1,5 +1,5 @@
 ﻿using GLV.Shared.ChatBot;
-using Telegram.Bot.Types;
+using WTelegram.Types;
 
 namespace GLV.Shared.ChatBot.Telegram;
 

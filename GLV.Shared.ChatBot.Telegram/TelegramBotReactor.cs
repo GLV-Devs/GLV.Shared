@@ -1,4 +1,5 @@
-﻿using Telegram.Bot.Types;
+﻿using WTelegram.Types;
+using GLV.Shared.ChatBot;
 
 namespace GLV.Shared.ChatBot.Telegram;
 
@@ -17,7 +18,7 @@ public class TelegramBotReactor
         Client.BotClient.OnUpdate += Client_OnUpdate;
     }
 
-    protected virtual async Task Client_OnUpdate(global::Telegram.Bot.Update arg)
+    protected virtual async Task Client_OnUpdate(Update arg)
     {
         await Manager.SubmitUpdate(new TelegramUpdateContext(arg, Client, ConversationIdFactory));
     }

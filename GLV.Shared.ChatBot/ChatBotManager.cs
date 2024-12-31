@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Collections.Frozen;
 using System.Diagnostics;
@@ -13,27 +14,32 @@ public partial class ChatBotManager
     public ChatBotManager(
         Type defaultAction, 
         IEnumerable<ConversationActionDefinition> actions,
-        IConversationStore conversationStore,
+        ServiceDescriptor conversationStoreServiceDescription,
         string? chatBotManagerIdentifier = null,
-        Action<IServiceCollection>? configureServices = null
+        Func<UpdateContext, ValueTask<bool>>? updateFilter = null,
+        IServiceCollection? configureServices = null
     )
     {
-        ArgumentNullException.ThrowIfNull(conversationStore);
-        ConversationStore = conversationStore;
+        ArgumentNullException.ThrowIfNull(conversationStoreServiceDescription);
 
+        if (conversationStoreServiceDescription.ServiceType != typeof(IConversationStore))
+            throw new ArgumentException("The store service descriptor doesn't describe a service type of IConversationStore. The implementation type needs only be assignable to it, but the service type MUST be IConversationStore", nameof(conversationStoreServiceDescription));
+
+        UpdateFilter = updateFilter;
         Identifier = string.IsNullOrWhiteSpace(chatBotManagerIdentifier) ? Guid.NewGuid().ToString() : chatBotManagerIdentifier;
 
         DefaultAction = defaultAction.IsAssignableTo(typeof(ConversationActionBase))
         ? defaultAction
         : throw new ArgumentException($"The type {defaultAction.Name} submitted as default action is not a sub-class of ConversationActionBase", nameof(defaultAction));
 
-        var serviceCollection = new ServiceCollection();
+        var serviceCollection = configureServices ?? new ServiceCollection();
+
         Actions = actions.Select(ActionProcessor).ToFrozenDictionary();
         Commands = actions.Where(x => string.IsNullOrWhiteSpace(x.CommandTrigger) is false)
                           .Select(CommandProcessor)
                           .ToFrozenDictionary();
 
-        configureServices?.Invoke(serviceCollection);
+        serviceCollection.Add(conversationStoreServiceDescription);
 
         KeyValuePair<string, ConversationCommandDefinition> CommandProcessor(ConversationActionDefinition x)
         {
@@ -68,10 +74,10 @@ public partial class ChatBotManager
 
     public event OnUpdateTypeFilteredOutHandler? OnUpdateTypeFilteredOut;
 
+    protected Func<UpdateContext, ValueTask<bool>>? UpdateFilter { get; }
+
     public string Identifier { get; }
     
-    public IConversationStore ConversationStore { get; }
-
     public IServiceProvider ChatBotServices { get; }
 
     public FrozenDictionary<string, Type> Actions { get; }
@@ -97,6 +103,11 @@ public partial class ChatBotManager
     private ConversationActionBase GetDefaultConversationAction(IServiceProvider services, Type type)
         => (ConversationActionBase)((IKeyedServiceProvider)services).GetKeyedService(type, DefaultActionServiceKey)!;
 
+    public virtual async ValueTask ConfigureChatBot(IChatBotClient client)
+    {
+        await client.SetBotCommands(Commands.Values);
+    }
+
     public string ComposeCommandKey(string trigger)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(trigger);
@@ -117,19 +128,23 @@ public partial class ChatBotManager
         => new($"An update of the conversation of id '{conversationId}' cannot be processed, as the system cannot continue waiting for it after attempt #{attempt}");
 
     protected virtual ValueTask<bool> FilterUpdates(UpdateContext update)
-        => ValueTask.FromResult(true);
+        => UpdateFilter?.Invoke(update) ?? ValueTask.FromResult(true);
 
     public virtual async Task SubmitUpdate(UpdateContext update)
     {
+        using var scope = ChatBotServices.CreateScope();
+        var services = scope.ServiceProvider;
+
         ConversationContext context;
         int attempt = 0;
+        var store = services.GetRequiredService<IConversationStore>();
         while (true)
         {
-            var fetchResult = await ConversationStore.FetchConversation(update.ConversationId);
+            var fetchResult = await store.FetchConversation(update.ConversationId);
             if (fetchResult.NotObtainedReason is IConversationStore.ConversationNotObtainedReason.ConversationNotFound)
             {
                 context = await CreateContext(update);
-                await ConversationStore.SaveChanges(context);
+                await store.SaveChanges(context);
             }
             else if (fetchResult.NotObtainedReason is IConversationStore.ConversationNotObtainedReason.ConversationUnderThreadContention)
             {
@@ -164,17 +179,15 @@ public partial class ChatBotManager
             }
         }
 
-        using var scope = ChatBotServices.CreateScope();
-
         ConversationActionBase action 
             = string.IsNullOrWhiteSpace(context.ActiveAction)
-            ? GetDefaultConversationAction(scope.ServiceProvider, DefaultAction)
+            ? GetDefaultConversationAction(services, DefaultAction)
                 : Actions.TryGetValue(context.ActiveAction, out var type)
-            ? GetConversationAction(scope.ServiceProvider, context.ActiveAction, type)
+            ? GetConversationAction(services, context.ActiveAction, type)
                 : throw new InvalidDataException($"Could not find an action by the name of '{context.ActiveAction}'");
 
         Debug.Assert(action is not null);
 
-        await action.PerformActions(context, update, this);
+        await action.PerformActions(store, context, update, this);
     }
 }

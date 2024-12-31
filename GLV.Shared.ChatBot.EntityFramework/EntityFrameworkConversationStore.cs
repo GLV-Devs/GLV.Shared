@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.CompilerServices;
 using static GLV.Shared.ChatBot.IConversationStore;
 
@@ -16,9 +17,9 @@ public sealed class EntityFrameworkConversationStore(DbContext context) : IConve
 
         try
         {
-            var cc = await context.Set<ConversationContextPacked>().FindAsync(conversationId);
+            var cc = await context.Set<ConversationContextPacked>().FirstOrDefaultAsync(x => x.ConversationId == conversationId);
             return cc is null
-                ? new FetchConversationResult(null, ConversationNotObtainedReason.ConversationWasObtained)
+                ? new FetchConversationResult(null, ConversationNotObtainedReason.ConversationNotFound)
                 : new FetchConversationResult(cc?.Unpack(), ConversationNotObtainedReason.ConversationWasObtained);
         }
         finally
@@ -32,7 +33,7 @@ public sealed class EntityFrameworkConversationStore(DbContext context) : IConve
         var sem = await KeyChain.WaitForSemaphore(conversationId);
         try
         {
-            var ccp = await context.Set<ConversationContextPacked>().FindAsync(conversationId);
+            var ccp = await context.Set<ConversationContextPacked>().FirstOrDefaultAsync(x => x.ConversationId == conversationId);
             if (ccp is not null)
                 context.Set<ConversationContextPacked>().Remove(ccp);
         }
@@ -47,18 +48,13 @@ public sealed class EntityFrameworkConversationStore(DbContext context) : IConve
         var sem = await KeyChain.WaitForSemaphore(convo.ConversationId);
         try
         {
-            var ccp = await context.Set<ConversationContextPacked>().FindAsync(convo.ConversationId);
+            var convoId = convo.ConversationId;
+            var ccp = await context.Set<ConversationContextPacked>().FirstOrDefaultAsync(x => x.ConversationId == convoId);
             if (ccp is null)
                 context.Set<ConversationContextPacked>().Add(ConversationContextPacked.Pack(convo));
             else
-            {
-                var entry = context.Entry(ccp);
-                if (entry.State is not EntityState.Deleted)
-                {
-                    entry.CurrentValues.SetValues(ConversationContextPacked.Pack(convo));
-                    entry.State = EntityState.Modified;
-                }
-            }
+                ccp.Repack(convo);
+
             await context.SaveChangesAsync();
         }
         finally

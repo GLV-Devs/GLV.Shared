@@ -12,7 +12,8 @@ public interface IConversationStore
 {
     public enum ConversationNotObtainedReason
     {
-        ConversationWasObtained = 0,
+        Unknown = 0,
+        ConversationWasObtained,
         ConversationNotFound,
         ConversationUnderThreadContention
     }

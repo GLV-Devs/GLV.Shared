@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
-using Telegram.Bot.Types;
+using WTelegram.Types;
+using GLV.Shared.ChatBot;
 
 namespace GLV.Shared.ChatBot.Telegram;
 
@@ -14,7 +15,7 @@ public class TaskMarshallingTelegramBotReactor(
 {
     private readonly ConcurrentQueue<UpdateContext> updates = [];
 
-    protected override Task Client_OnUpdate(global::Telegram.Bot.Update arg)
+    protected override Task Client_OnUpdate(Update arg)
     {
         updates.Enqueue(new TelegramUpdateContext(arg, Client, ConversationIdFactory));
         return Task.CompletedTask;
