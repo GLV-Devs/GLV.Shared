@@ -35,20 +35,16 @@ public partial class ChatBotManager
         var serviceCollection = configureServices ?? new ServiceCollection();
 
         Actions = actions.Select(ActionProcessor).ToFrozenDictionary();
-        Commands = actions.Where(x => string.IsNullOrWhiteSpace(x.CommandTrigger) is false)
+        Commands = actions.Where(x => x.ValidateCommandTrigger())
                           .Select(CommandProcessor)
                           .ToFrozenDictionary();
 
         serviceCollection.Add(conversationStoreServiceDescription);
 
-        KeyValuePair<string, ConversationCommandDefinition> CommandProcessor(ConversationActionDefinition x)
-        {
-            if (x.ConversationAction.IsAssignableTo(typeof(ConversationActionBase)) is false)
-                throw new InvalidDataException($"The type {x.ConversationAction.Name} submitted as command {x.CommandTrigger} is not a sub-class of ConversationActionBase");
-
-            serviceCollection.AddKeyedTransient(x.ConversationAction, CoreComposeCommandKey(x.ActionName));
-            return new(x.CommandTrigger!, new ConversationCommandDefinition(x.ConversationAction, x.CommandTrigger!, x.CommandDescription));
-        }
+        KeyValuePair<string, ConversationActionDefinition> CommandProcessor(ConversationActionDefinition x) 
+            => x.ConversationAction.IsAssignableTo(typeof(ConversationActionBase)) is false
+                ? throw new InvalidDataException($"The type {x.ConversationAction.Name} submitted as command {x.CommandTrigger} is not a sub-class of ConversationActionBase")
+                : new(x.CommandTrigger!, x);
 
         KeyValuePair<string, Type> ActionProcessor(ConversationActionDefinition x)
         {
@@ -82,12 +78,12 @@ public partial class ChatBotManager
 
     public FrozenDictionary<string, Type> Actions { get; }
 
-    public FrozenDictionary<string, ConversationCommandDefinition> Commands { get; }
+    public FrozenDictionary<string, ConversationActionDefinition> Commands { get; }
 
     public Type DefaultAction { get; }
 
-    private string CoreComposeCommandKey(string trigger)
-        => $"ConversationCommand!{Identifier}::{trigger}";
+    public virtual IScopedChatBotClient ScopeClient(IChatBotClient client, Guid conversation)
+        => new ScopedChatBotClient(conversation, client);
 
     private string CoreComposeServiceKey(string action)
         => $"ConversationAction!{Identifier}::{action}";
@@ -108,14 +104,6 @@ public partial class ChatBotManager
         await client.SetBotCommands(Commands.Values);
     }
 
-    public string ComposeCommandKey(string trigger)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(trigger);
-        return Commands.ContainsKey(trigger) is false
-            ? throw new ArgumentException($"Unknown ConversationCommand: '{trigger}'", nameof(trigger))
-            : CoreComposeCommandKey(trigger);
-    }
-
     public string ComposeServiceKey(string action)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
@@ -130,21 +118,31 @@ public partial class ChatBotManager
     protected virtual ValueTask<bool> FilterUpdates(UpdateContext update)
         => UpdateFilter?.Invoke(update) ?? ValueTask.FromResult(true);
 
-    public virtual async Task SubmitUpdate(UpdateContext update)
+    /// <summary>
+    /// Attempts to process the inputted command. If it matches a command, sets the context to the current state, and returns <see cref="ConversationActionEndingKind.Repeat"/>. Otherwise, leaves the context unchanged and returns <see cref="ConversationActionEndingKind.Finished"/>
+    /// </summary>
+    public virtual ValueTask<ConversationActionEndingKind> TryProcessCommand(string messageText, UpdateContext update, ConversationContext context)
     {
-        using var scope = ChatBotServices.CreateScope();
-        var services = scope.ServiceProvider;
+        if (update.Client.IsValidBotCommand(messageText, out var cmd) && Commands.TryGetValue(cmd, out var definition)) 
+        {
+            context.SetState(0, definition.ActionName);
+            return ValueTask.FromResult(ConversationActionEndingKind.Repeat);
+        }
 
-        ConversationContext context;
+        return ValueTask.FromResult(ConversationActionEndingKind.Finished);
+    }
+
+    protected virtual async Task<ConversationContext> GetOrCreateContext(IConversationStore store, UpdateContext update)
+    {
         int attempt = 0;
-        var store = services.GetRequiredService<IConversationStore>();
         while (true)
         {
             var fetchResult = await store.FetchConversation(update.ConversationId);
             if (fetchResult.NotObtainedReason is IConversationStore.ConversationNotObtainedReason.ConversationNotFound)
             {
-                context = await CreateContext(update);
+                var context = await CreateContext(update);
                 await store.SaveChanges(context);
+                return context;
             }
             else if (fetchResult.NotObtainedReason is IConversationStore.ConversationNotObtainedReason.ConversationUnderThreadContention)
             {
@@ -174,20 +172,35 @@ public partial class ChatBotManager
                     fetchResult.Context is not null,
                     "fetchResult.Context was unexpectedly null"
                 );
-                context = fetchResult.Context;
-                break;
+                return fetchResult.Context;
             }
         }
+    }
 
-        ConversationActionBase action 
-            = string.IsNullOrWhiteSpace(context.ActiveAction)
-            ? GetDefaultConversationAction(services, DefaultAction)
-                : Actions.TryGetValue(context.ActiveAction, out var type)
-            ? GetConversationAction(services, context.ActiveAction, type)
-                : throw new InvalidDataException($"Could not find an action by the name of '{context.ActiveAction}'");
+    public virtual async Task SubmitUpdate(UpdateContext update, ConversationContext? context = null)
+    {
+        using var scope = ChatBotServices.CreateScope();
+        var services = scope.ServiceProvider;
 
-        Debug.Assert(action is not null);
+        var store = services.GetRequiredService<IConversationStore>();
 
-        await action.PerformActions(store, context, update, this);
+        context ??= await GetOrCreateContext(store, update);
+
+        while (true) 
+        {
+            ConversationActionBase action 
+                = string.IsNullOrWhiteSpace(context.ActiveAction)
+                ? GetDefaultConversationAction(services, DefaultAction)
+                    : Actions.TryGetValue(context.ActiveAction, out var type)
+                ? GetConversationAction(services, context.ActiveAction, type)
+                    : throw new InvalidDataException($"Could not find an action by the name of '{context.ActiveAction}'");
+
+            Debug.Assert(action is not null);
+
+            var ending = await action.PerformActions(scope.ServiceProvider, store, context, update, this);
+            if (ending == ConversationActionEndingKind.Repeat)
+                continue;
+            break;
+        }
     }
 }

@@ -1,4 +1,6 @@
 ﻿using GLV.Shared.ChatBot;
+using System.Text.Json.Serialization;
+using Telegram.Bot.Types.Enums;
 using WTelegram.Types;
 
 namespace GLV.Shared.ChatBot.Telegram;
@@ -13,4 +15,9 @@ public class TelegramUpdateContext(
 
     public static Guid GetConversationId(Update update, IChatBotClient client)
         => update.GetTelegramConversationId(client.BotId);
+
+    public override Message? Message { get; }
+        = update.Message is null
+        ? null
+        : new Message(update.Message.Text, update.Message.Type != MessageType.Text);
 }

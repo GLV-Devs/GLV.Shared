@@ -1,4 +1,5 @@
 ﻿using GLV.Shared.ChatBot;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Telegram.Bot.Types;
 
@@ -10,15 +11,33 @@ public class TelegramChatBotClient(string botId, WTelegram.Bot client) : IChatBo
     public string BotId { get; } = botId;
     public object UnderlyingBotClientObject => BotClient;
 
-    public Task SetBotCommands(IEnumerable<GLV.Shared.ChatBot.ConversationCommandDefinition> commands)
-        => BotClient.SetMyCommands(commands.Select(c => new BotCommand()
+    public Task SetBotCommands(IEnumerable<ConversationActionDefinition> commands)
+    {
+        if (commands.Any() is false)
+            return Task.CompletedTask;
+
+        return BotClient.SetMyCommands(commands.Select(c => new BotCommand()
         {
-            Command = PrepareCommand(c.CommandTrigger),
+            Command = PrepareCommand(c.CommandTrigger 
+                ?? throw new ArgumentException("Encountered a command definition with a null command trigger", nameof(commands))),
             Description = c.CommandDescription ?? ""
         }));
+    }
 
     private static string PrepareCommand(string trigger)
         => (trigger.StartsWith('/') ? '/' + trigger : trigger).Trim();
+
+    public bool IsValidBotCommand(string text, [NotNullWhen(true)] out string? cmd)
+    {
+        if (TelegramRegexes.CheckCommandRegex.IsMatch(text))
+        {
+            cmd = text[1..];
+            return true;
+        }
+
+        cmd = null;
+        return false;
+    }
 
     public async Task RespondWithText(Guid conversationId, string text)
     {

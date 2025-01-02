@@ -10,11 +10,11 @@ namespace GLV.Shared.ChatBot;
 /// <remarks>
 /// When inheriting from this class, be mindful of serialization! Most <see cref="IConversationStore"/> implementations serialize the context to store it. Note that <see cref="Step"/> and <see cref="ActiveAction"/> need special care, as they are set to ignore since they have <see langword="private setter"/>s
 /// </remarks>
-public class ConversationContext(Guid conversationId, Dictionary<string, object>? data = null)
+public class ConversationContext(Guid conversationId, Dictionary<string, string>? data = null)
 {
     public Guid ConversationId { get; private set; } = conversationId;
 
-    public Dictionary<string, object> Data { get; init; } = data ?? [];
+    public Dictionary<string, string> Data { get; init; } = data ?? [];
 
     /// <summary>
     /// The step within <see cref="ActiveAction"/> the conversation is in
@@ -48,4 +48,17 @@ public class ConversationContext(Guid conversationId, Dictionary<string, object>
         Step = step;
         ActiveAction = activeAction;
     }
+
+    /// <summary>
+    /// A shorthand for <see cref="SetState(long, string?)"/> with arguments "<paramref name="step"/>, <see cref="ActiveAction"/>"
+    /// </summary>
+    /// <param name="step">The action specific step the conversation is at</param>
+    public void SetStep(long step)
+        => SetState(step, ActiveAction);
+
+    /// <summary>
+    /// A shorthand for <see cref="SetState(long, string?)"/> with arguments "<c>0</c>, <see langword="null"/>"
+    /// </summary>
+    public void ResetState()
+        => SetState(0, null);
 }

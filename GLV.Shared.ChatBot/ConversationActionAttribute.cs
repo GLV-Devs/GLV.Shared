@@ -7,6 +7,8 @@ public class ConversationActionAttribute : Attribute
     {
         ActionName = actionName;
         IsDefaultAction = false;
+        CommandTrigger = commandTrigger;
+        CommandDescription = commandDescription;
     }
 
     public ConversationActionAttribute(bool isDefaultAction)
