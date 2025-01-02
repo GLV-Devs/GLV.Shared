@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace GLV.Shared.ChatBot.Telegram;
 
@@ -47,4 +48,11 @@ public class TelegramChatBotClient(string botId, WTelegram.Bot client) : IChatBo
 
     public Task SetBotDescription(string name, string? shortDescription = null, string? description = null, CultureInfo? culture = null)
         => BotClient.SetMyInfo(name ?? BotId, shortDescription, description, (culture ?? CultureInfo.CurrentCulture).TwoLetterISOLanguageName);
+
+    public Task RespondWithKeyboard(Guid conversationId, Keyboard keyboard, string? text)
+        => BotClient.SendMessage(
+            conversationId.UnpackTelegramConversationId(),
+            text ?? " ",
+            replyMarkup: new InlineKeyboardMarkup(keyboard.Rows.Select(x => x.Keys.Select(y => new InlineKeyboardButton(y.Text) { CallbackData = y.Data })))
+        );
 }

@@ -20,4 +20,9 @@ public class TelegramUpdateContext(
         = update.Message is null
         ? null
         : new Message(update.Message.Text, update.Message.Type != MessageType.Text);
+
+    public override KeyboardResponse? KeyboardResponse { get; }
+        = update.CallbackQuery is null
+        ? null
+        : new KeyboardResponse(update.CallbackQuery.Id, update.CallbackQuery.Data);
 }

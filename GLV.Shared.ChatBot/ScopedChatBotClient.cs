@@ -24,4 +24,7 @@ public class ScopedChatBotClient(Guid scopedConversation, IChatBotClient client)
 
     public Task RespondWithText(Guid conversationId, string text) 
         => Client.RespondWithText(conversationId, text);
+
+    public Task RespondWithKeyboard(Guid conversationId, Keyboard keyboard, string? text)
+        => Client.RespondWithKeyboard(conversationId, keyboard, text);
 }

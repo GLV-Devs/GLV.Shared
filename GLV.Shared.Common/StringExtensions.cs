@@ -6,17 +6,17 @@ namespace GLV.Shared.Common;
 
 public static class StringExtensions
 {
-    public static bool TryGetTextAfterFirst(this string str, string c, [NotNullWhen(true)] out string? text)
+    public static bool TryGetTextAfter(this string str, string c, [NotNullWhen(true)] out string? text)
     {
         var firstSpace = str.IndexOf(c);
         if (firstSpace == -1 || firstSpace + 1 >= str.Length)
         {
-            text = str[(firstSpace + 1)..];
-            return true;
+            text = null;
+            return false;
         }
 
-        text = null;
-        return false;
+        text = str[(firstSpace + c.Length)..];
+        return true;
     }
 
     public static bool TryGetTextAfter(this string str, char c, [NotNullWhen(true)] out string? text)
@@ -24,12 +24,12 @@ public static class StringExtensions
         var firstSpace = str.IndexOf(c);
         if (firstSpace == -1 || firstSpace + 1 >= str.Length)
         {
-            text = str[(firstSpace + 1)..];
-            return true;
+            text = null;
+            return false;
         }
 
-        text = null;
-        return false;
+        text = str[(firstSpace + 1)..];
+        return true;
     }
 
     public static string ToStringOrDefault<T>(this Nullable<T> value, string @default, string? format = null, IFormatProvider? formatProvider = null)
