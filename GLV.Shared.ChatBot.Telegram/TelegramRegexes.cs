@@ -1,14 +1,26 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace GLV.Shared.ChatBot.Telegram;
 
 internal static partial class TelegramRegexes
 {
-    /// <summary>
-    /// "/\w+"
-    /// </summary>
-    public static Regex CheckCommandRegex { get; } = GetCheckCommandRegex();
+    private static readonly Dictionary<string, Regex> regexes = [];
 
-    [GeneratedRegex(@"/\w+")]
-    private static partial Regex GetCheckCommandRegex();
+    public static Regex CheckCommandRegex(string botHandle, bool compiled = true)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(botHandle);
+
+        if (regexes.TryGetValue(botHandle, out var regex))
+        {
+            Debug.Assert(regex is not null);
+            return regex;
+        }
+
+        var options = RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.NonBacktracking;
+        if (compiled)
+            options |= RegexOptions.Compiled;
+
+        return regexes[botHandle] = new Regex($"^/(?<cmd>\\w+)(@{botHandle})?$", options);
+    }
 }

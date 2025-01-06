@@ -55,7 +55,8 @@ public partial class ChatBotManager
         Func<(ConversationActionAttribute Attribute, Type Type), bool>? predicate = null,
         Func<UpdateContext, ValueTask<bool>>? updateFilter = null,
         IServiceCollection? configureServices = null,
-        IEnumerable<Assembly>? assemblies = null
+        IEnumerable<Assembly>? assemblies = null,
+        ChatBotManager.OnUpdateExceptionThrownHandler? exceptionHandler = null
     )
     {
         if (conversationStoreServiceDescription.ServiceType != typeof(IConversationStore))
@@ -88,7 +89,8 @@ public partial class ChatBotManager
             conversationStoreServiceDescription,
             chatBotManagerIdentifier,
             updateFilter,
-            configureServices
+            configureServices,
+            exceptionHandler
         );
     }
 }

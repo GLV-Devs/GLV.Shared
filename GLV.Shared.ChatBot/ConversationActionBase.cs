@@ -27,6 +27,18 @@ public abstract class ConversationActionBase
     }
 
     /// <summary>
+    /// The Update Context surrounding the current action
+    /// </summary>
+    /// <remarks>
+    /// This property is only accesible whilst performing an action (i.e. inside <see cref="PerformAsync"/>). And will throw an exception if an attempt is made to access it otherwise
+    /// </remarks>
+    public UpdateContext Update
+    {
+        get => field ?? throw new InvalidOperationException("Update property is only available whilst performing an action");
+        private set;
+    }
+
+    /// <summary>
     /// The ChatBotManager available during this action
     /// </summary>
     /// <remarks>
@@ -74,22 +86,41 @@ public abstract class ConversationActionBase
         private set;
     }
 
-    internal async Task<ConversationActionEndingKind> PerformActions(IServiceProvider services, IConversationStore store, ConversationContext context, UpdateContext update, ChatBotManager manager)
+    /// <summary>
+    /// Checks if the user is attempting to cancel the current action
+    /// </summary>
+    /// <remarks>
+    /// It's safe to take no action other than ending the current action if this method returns <see langword="true"/>, but only if <paramref name="setContextState"/> is set to <see langword="true"/>
+    /// </remarks>
+    /// <param name="setContextState">If <see langword="true"/>, the conversation context will be reset</param>
+    /// <param name="notificationText">The text to send to the user in response to the cancellation. <see langword="null"/> if nothing is to be said</param>
+    /// <returns></returns>
+    public async ValueTask<bool> CheckForCancellation(bool setContextState = true, string? notificationText = "The action has been cancelled. What else can I do for you?")
+    {
+        if (ChatBotManager.CheckForCancellation(Update, Context, setContextState))
+        {
+            if (string.IsNullOrWhiteSpace(notificationText) is false)
+                await Bot.RespondWithText(notificationText);
+            return true;
+        }
+        return false;
+    }
+
+    internal async Task<ConversationActionEndingKind> PerformActions(IServiceProvider services, IConversationStore store, ConversationContext context, UpdateContext update, ChatBotManager manager, IScopedChatBotClient client)
     {
         Debug.Assert(context is not null);
         Debug.Assert(update is not null);
         Debug.Assert(manager is not null);
 
         Context = context;
-        Bot = manager.ScopeClient(update.Client, context.ConversationId);
+        Bot = client;
         ChatBotManager = manager;
         ConversationStore = store;
         Services = services;
+        Update = update;
         try
         {
-            var ending = await PerformAsync(update);
-            await store.SaveChanges(Context);
-            return ending;
+            return await PerformAsync(update);
         }
         finally
         {
@@ -97,6 +128,7 @@ public abstract class ConversationActionBase
             Bot = null!;
             ChatBotManager = null!;
             ConversationStore = null!;
+            Update = null!;
         }
     }
 

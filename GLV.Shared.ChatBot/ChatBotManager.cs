@@ -10,20 +10,37 @@ public partial class ChatBotManager
 {
     public delegate ValueTask<TimeSpan> OnConversationContextThreadContentionHandler(UpdateContext update, int attempt);
     public delegate ValueTask OnUpdateTypeFilteredOutHandler(UpdateContext update);
+    public delegate void SinkLogMessageHandler(
+        int logLevel, 
+        string message, 
+        int eventId, 
+        Exception? exception,
+        IServiceProvider services
+    );
+    public delegate ValueTask<ConversationActionEndingKind?> OnUpdateExceptionThrownHandler(
+        Exception exc, 
+        IScopedChatBotClient client, 
+        IServiceProvider services
+    );
+
+    private OnUpdateExceptionThrownHandler? exceptionHandler;
 
     public ChatBotManager(
-        Type defaultAction, 
+        Type defaultAction,
         IEnumerable<ConversationActionDefinition> actions,
         ServiceDescriptor conversationStoreServiceDescription,
         string? chatBotManagerIdentifier = null,
         Func<UpdateContext, ValueTask<bool>>? updateFilter = null,
-        IServiceCollection? configureServices = null
+        IServiceCollection? configureServices = null,
+        OnUpdateExceptionThrownHandler? exceptionHandler = null
     )
     {
         ArgumentNullException.ThrowIfNull(conversationStoreServiceDescription);
 
         if (conversationStoreServiceDescription.ServiceType != typeof(IConversationStore))
             throw new ArgumentException("The store service descriptor doesn't describe a service type of IConversationStore. The implementation type needs only be assignable to it, but the service type MUST be IConversationStore", nameof(conversationStoreServiceDescription));
+
+        this.exceptionHandler = exceptionHandler;
 
         UpdateFilter = updateFilter;
         Identifier = string.IsNullOrWhiteSpace(chatBotManagerIdentifier) ? Guid.NewGuid().ToString() : chatBotManagerIdentifier;
@@ -46,18 +63,18 @@ public partial class ChatBotManager
                 ? throw new InvalidDataException($"The type {x.ConversationAction.Name} submitted as command {x.CommandTrigger} is not a sub-class of ConversationActionBase")
                 : new(x.CommandTrigger!, x);
 
-        KeyValuePair<string, Type> ActionProcessor(ConversationActionDefinition x)
+        KeyValuePair<string, ConversationActionDefinition> ActionProcessor(ConversationActionDefinition x)
         {
             if (x.ConversationAction.IsAssignableTo(typeof(ConversationActionBase)) is false)
                 throw new InvalidDataException($"The type {x.ConversationAction.Name} submitted as action {x.ActionName} is not a sub-class of ConversationActionBase");
 
             serviceCollection.AddKeyedTransient(x.ConversationAction, CoreComposeServiceKey(x.ActionName));
-            return new(x.ActionName, x.ConversationAction);
+            return new(x.ActionName, x);
         }
 
         DefaultActionServiceKey = $"ConversationAction!{Identifier}::default";
         serviceCollection.AddKeyedScoped(defaultAction, DefaultActionServiceKey);
-        ChatBotServices = serviceCollection.BuildServiceProvider();
+        ChatBotServices = serviceCollection.BuildServiceProvider(); // Dangerous?
     }
 
     /// <summary>
@@ -76,9 +93,10 @@ public partial class ChatBotManager
     
     public IServiceProvider ChatBotServices { get; }
 
-    public FrozenDictionary<string, Type> Actions { get; }
-
+    public FrozenDictionary<string, ConversationActionDefinition> Actions { get; }
     public FrozenDictionary<string, ConversationActionDefinition> Commands { get; }
+
+    public SinkLogMessageHandler? SinkLogMessageAction { get; set; }
 
     public Type DefaultAction { get; }
 
@@ -101,6 +119,7 @@ public partial class ChatBotManager
 
     public virtual async ValueTask ConfigureChatBot(IChatBotClient client)
     {
+        await client.PrepareBot();
         await client.SetBotCommands(Commands.Values);
     }
 
@@ -119,18 +138,60 @@ public partial class ChatBotManager
         => UpdateFilter?.Invoke(update) ?? ValueTask.FromResult(true);
 
     /// <summary>
-    /// Attempts to process the inputted command. If it matches a command, sets the context to the current state, and returns <see cref="ConversationActionEndingKind.Repeat"/>. Otherwise, leaves the context unchanged and returns <see cref="ConversationActionEndingKind.Finished"/>
+    /// Attempts to process the inputted command. If it matches a command, sets the context to the current state, and returns <see langword="true"/>. Otherwise, leaves the context unchanged and returns <see langword="false"/>
     /// </summary>
-    public virtual ValueTask<ConversationActionEndingKind> TryProcessCommand(string messageText, UpdateContext update, ConversationContext context)
+    /// <remarks>
+    /// To execute the command immediately without waiting for another message from the user, return <see cref="ConversationActionEndingKind.Repeat"/> immediately after this method returns <see langword="true"/>
+    /// </remarks>
+    /// <param name="update"></param>
+    /// <param name="context"></param>
+    /// <param name="setContextState">If <see langword="true"/>, then the context will be set to step 0 of the Conversation Action</param>
+    public ValueTask<bool> CheckIfCommand(UpdateContext update, ConversationContext context, bool setContextState = true)
+        => CoreCheckForAction(update, context, Commands, setContextState);
+
+    /// <summary>
+    /// Checks if the user is attempting to cancel the current action
+    /// </summary>
+    /// <param name="update"></param>
+    /// <param name="context"></param>
+    /// <param name="setContextState">If <see langword="true"/>, then the context will be reset automatically</param>
+    public virtual bool CheckForCancellation(UpdateContext update, ConversationContext context, bool setContextState = true)
     {
-        if (update.Client.IsValidBotCommand(messageText, out var cmd) && Commands.TryGetValue(cmd, out var definition)) 
+        if (update.Message is Message msg && string.IsNullOrWhiteSpace(msg.Text) is false
+            && update.Client.IsValidBotCommand(msg.Text, out var cmd) && string.Equals(cmd, "cancel", StringComparison.OrdinalIgnoreCase))
         {
-            context.SetState(0, definition.ActionName);
-            return ValueTask.FromResult(ConversationActionEndingKind.Repeat);
+            if (setContextState)
+                context.ResetState();
+            return true;
         }
 
-        return ValueTask.FromResult(ConversationActionEndingKind.Finished);
+        return false;
     }
+
+    public virtual ValueTask<bool> CoreCheckForAction(
+        UpdateContext update, 
+        ConversationContext context,
+        IDictionary<string, ConversationActionDefinition> set,
+        bool setContextState
+    )
+    {
+        if (update.Message is Message msg && string.IsNullOrWhiteSpace(msg.Text) is false)
+        {
+            int index = msg.Text.IndexOf(' ');
+            var cmdText = index > 0 ? msg.Text[..index] : msg.Text;
+            if(update.Client.IsValidBotCommand(cmdText, out var cmd) && Commands.TryGetValue(cmd, out var definition))
+            {
+                if(setContextState)
+                    context.SetState(0, definition.ActionName);
+                return ValueTask.FromResult(true);
+            }
+        }
+
+        return ValueTask.FromResult(false);
+    }
+
+    // This method should also receive a set of commands to look through
+    // TryProcessDefaultCommand checks only for help, cancel and stop.
 
     protected virtual async Task<ConversationContext> GetOrCreateContext(IConversationStore store, UpdateContext update)
     {
@@ -185,22 +246,57 @@ public partial class ChatBotManager
         var store = services.GetRequiredService<IConversationStore>();
 
         context ??= await GetOrCreateContext(store, update);
+        var client = ScopeClient(update.Client, context.ConversationId);
 
-        while (true) 
+        try
         {
-            ConversationActionBase action 
-                = string.IsNullOrWhiteSpace(context.ActiveAction)
-                ? GetDefaultConversationAction(services, DefaultAction)
-                    : Actions.TryGetValue(context.ActiveAction, out var type)
-                ? GetConversationAction(services, context.ActiveAction, type)
-                    : throw new InvalidDataException($"Could not find an action by the name of '{context.ActiveAction}'");
+            while (true) 
+            {
+                ConversationActionBase action 
+                    = string.IsNullOrWhiteSpace(context.ActiveAction)
+                    ? GetDefaultConversationAction(services, DefaultAction)
+                        : Actions.TryGetValue(context.ActiveAction, out var actionDefinition)
+                    ? GetConversationAction(services, context.ActiveAction, actionDefinition.ConversationAction)
+                        : throw new InvalidDataException($"Could not find an action by the name of '{context.ActiveAction}'");
 
-            Debug.Assert(action is not null);
+                Debug.Assert(action is not null);
 
-            var ending = await action.PerformActions(scope.ServiceProvider, store, context, update, this);
-            if (ending == ConversationActionEndingKind.Repeat)
-                continue;
-            break;
+                ConversationActionEndingKind ending;
+                try
+                {
+                    ending = await action.PerformActions(scope.ServiceProvider, store, context, update, this, client);
+                }
+                catch(Exception exc)
+                {
+                    var t = exceptionHandler?.Invoke(exc, client, scope.ServiceProvider);
+                    if (t is ValueTask<ConversationActionEndingKind?> task && await task is ConversationActionEndingKind end)
+                    {
+                        SinkLogMessageAction?.Invoke(2, "An exception was thrown while trying to perform an action", -12355522, exc, services);
+                        if (end == ConversationActionEndingKind.Repeat)
+                            continue;
+
+                        break;
+                    }
+
+                    throw;
+                }
+
+                if (ending == ConversationActionEndingKind.Repeat)
+                    continue;
+
+                break;
+            }
+        }
+        finally
+        {
+            try
+            {
+                await store.SaveChanges(context);
+            }
+            catch(Exception e)
+            {
+                SinkLogMessageAction?.Invoke(3, "An unexpected error ocurred while trying to save the context", -232433452, e, services);
+            }
         }
     }
 }

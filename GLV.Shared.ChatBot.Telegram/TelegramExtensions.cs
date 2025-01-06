@@ -73,7 +73,7 @@ public static class TelegramExtensions
         UpdateType.Message => GetTelegramMessageConversationId(update.Message!.Chat.Id, chatBotId),
         UpdateType.InlineQuery => GetTelegramMessageConversationId(update.InlineQuery!.From.Id, chatBotId),
         UpdateType.ChosenInlineResult => GetTelegramMessageConversationId(update.ChosenInlineResult!.From.Id, chatBotId),
-        UpdateType.CallbackQuery => GetTelegramMessageConversationId(update.CallbackQuery!.From.Id, chatBotId),
+        UpdateType.CallbackQuery => GetTelegramMessageConversationId(update.CallbackQuery!.Message!.Chat.Id, chatBotId),
         UpdateType.EditedMessage => GetTelegramMessageConversationId(update.EditedMessage!.Chat.Id, chatBotId),
         UpdateType.ChannelPost => GetTelegramMessageConversationId(update.ChannelPost!.Chat.Id, chatBotId),
         UpdateType.EditedChannelPost => GetTelegramMessageConversationId(update.EditedChannelPost!.Chat.Id, chatBotId),
