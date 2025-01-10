@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using TL;
 using WTelegram;
@@ -19,7 +20,7 @@ public class TelegramChatBotClient : IChatBotClient
         string botId, 
         WTelegram.Bot client, 
         ChatBotManager manager,
-        Func<Update, Task>? updateHandler = null,
+        Func<Update, ChatBotManager, Task>? updateHandler = null,
         Func<Update, IChatBotClient, Guid>? conversationIdFactory = null
 )
     {
@@ -31,17 +32,22 @@ public class TelegramChatBotClient : IChatBotClient
         BotClient.OnUpdate += BotClient_OnUpdate;
     }
 
-    private Task BotClient_OnUpdate(WTelegram.Types.Update arg) 
+    private Task BotClient_OnUpdate(WTelegram.Types.Update arg)
         => UpdateHandler is not null
-            ? UpdateHandler.Invoke(arg)
-            : Manager.SubmitUpdate(new TelegramUpdateContext(arg, this, ConversationIdFactory));
+            ? UpdateHandler.Invoke(arg, Manager)
+            : Manager.SubmitUpdate(PrepareUpdateContext(arg));
+
+    protected virtual TelegramUpdateContext PrepareUpdateContext(WTelegram.Types.Update update) 
+        => update.Type is UpdateType.MyChatMember
+            ? new TelegramUpdateContext(update, this, ConversationIdFactory?.Invoke(update, this), true)
+            : new TelegramUpdateContext(update, this, ConversationIdFactory?.Invoke(update, this));
 
     public ChatBotManager Manager { get; }
     public WTelegram.Bot BotClient { get; }
     public string BotId { get; }
     public object UnderlyingBotClientObject => BotClient;
     public Func<Update, IChatBotClient, Guid>? ConversationIdFactory { get; }
-    public Func<Update, Task>? UpdateHandler { get; }
+    public Func<Update, ChatBotManager, Task>? UpdateHandler { get; }
 
     private Regex CheckCommandRegex;
 
@@ -59,7 +65,7 @@ public class TelegramChatBotClient : IChatBotClient
         Debug.Assert(CheckCommandRegex != null);
     }
 
-    public Task SetBotCommands(IEnumerable<ConversationActionDefinition> commands)
+    public Task SetBotCommands(IEnumerable<ConversationActionInformation> commands)
     {
         if (commands.Any() is false)
             return Task.CompletedTask;
@@ -101,12 +107,6 @@ public class TelegramChatBotClient : IChatBotClient
         return false;
     }
 
-    public async Task<long> RespondWithText(Guid conversationId, string text)
-    {
-        var id = conversationId.UnpackTelegramConversationId();
-        return (await BotClient.SendMessage(id, text)).Id;
-    }
-
     public async Task SetBotDescription(string name, string? shortDescription = null, string? description = null, CultureInfo? culture = null)
     {
         try
@@ -121,13 +121,28 @@ public class TelegramChatBotClient : IChatBotClient
         }
     }
 
-    public async Task<long> RespondWithKeyboard(Guid conversationId, Keyboard keyboard, string? text)
+    public async Task<long> SendMessage(Guid conversationId, string? text, Keyboard? kr)
     {
-        var msg = await BotClient.SendMessage(
-            conversationId.UnpackTelegramConversationId(),
-            text ?? " ",
-            replyMarkup: ParseKeyboard(keyboard)
-        );
+        var id = conversationId.UnpackTelegramConversationId();
+        WTelegram.Types.Message msg;
+
+        if (kr is Keyboard keyboard)
+        {
+            msg = await BotClient.SendMessage(
+                id,
+                text ?? " ",
+                replyMarkup: ParseKeyboard(keyboard)
+            );
+        }
+        else
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
+            msg = await BotClient.SendMessage(
+                id,
+                text
+            );
+        }
+
         return msg.Id;
     }
 
@@ -140,21 +155,25 @@ public class TelegramChatBotClient : IChatBotClient
             cacheTime
         );
 
-    public Task EditKeyboard(Guid conversationId, long messageId, Keyboard newKeyboard, string? newText)
+    public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard)
     {
         var chatId = conversationId.UnpackTelegramConversationId();
-        var kb = ParseKeyboard(newKeyboard);
+        var markup = newKeyboard is Keyboard kb ? ParseKeyboard(kb) : null;
         var mid = (int)messageId;
 
-        return string.IsNullOrWhiteSpace(newText) is false
-            ? BotClient.EditMessageText(chatId, mid, newText)
-            : (Task)BotClient.EditMessageReplyMarkup(chatId, mid, kb);
+        if (string.IsNullOrWhiteSpace(newText) && markup is null)
+            return;
+
+        else if (string.IsNullOrWhiteSpace(newText))
+        {
+            Debug.Assert(markup is not null); // We checked that both aren't null; so if one is null, the other can't
+            await BotClient.EditMessageReplyMarkup(chatId, mid, markup);
+        }
+        else // This also covers the case where neither is null
+            await BotClient.EditMessageText(chatId, mid, newText, replyMarkup: markup);
     }
 
-    public Task EditText(Guid conversationId, long messageId, string newText)
-        => BotClient.EditMessageText(conversationId.UnpackTelegramConversationId(), (int)messageId, newText);
-
-    public static InlineKeyboardMarkup ParseKeyboard(Keyboard keyboard)
+    public static InlineKeyboardMarkup ParseKeyboard(in Keyboard keyboard)
         => new(keyboard.Rows.Select(x => x.Keys.Select(y => new InlineKeyboardButton(y.Text) { CallbackData = y.Data })));
 
     [ThreadStatic]
@@ -164,4 +183,25 @@ public class TelegramChatBotClient : IChatBotClient
         (msgIdArray ??= new int[1])[0] = (int)messageId;
         return BotClient.DeleteMessages(conversationId.UnpackTelegramConversationId(), msgIdArray);
     }
+
+    public virtual Task ProcessUpdate(UpdateContext uc, ConversationContext context)
+    {
+        if (uc is not TelegramUpdateContext update)
+            return Task.CompletedTask;
+
+        if (update.Update.MyChatMember is ChatMemberUpdated botStatus)
+        {
+            //var member = botStatus.NewChatMember;
+            //if (member is ChatMemberAdministrator admin) 
+            //    admin.
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public bool IsReferringToBot(string text)
+        => text.Equals($"@{BotHandle}", StringComparison.OrdinalIgnoreCase);
+
+    public bool ContainsReferenceToBot(string text)
+        => text.Contains($"@{BotHandle}", StringComparison.OrdinalIgnoreCase);
 }

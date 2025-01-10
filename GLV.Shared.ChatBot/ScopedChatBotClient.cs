@@ -16,30 +16,34 @@ public class ScopedChatBotClient(Guid scopedConversation, IChatBotClient client)
     public bool IsValidBotCommand(string text, [NotNullWhen(true)] out string? commandName)
         => Client.IsValidBotCommand(text, out commandName);
 
-    public Task SetBotCommands(IEnumerable<ConversationActionDefinition> commands)
+    public Task SetBotCommands(IEnumerable<ConversationActionInformation> commands)
         => Client.SetBotCommands(commands);
 
     public Task SetBotDescription(string name, string? shortDescription = null, string? description = null, CultureInfo? culture = null)
         => Client.SetBotDescription(name, shortDescription, description, culture);
 
-    public Task<long> RespondWithText(Guid conversationId, string text)
-        => Client.RespondWithText(conversationId, text);
-
-    public Task<long> RespondWithKeyboard(Guid conversationId, Keyboard keyboard, string? text)
-        => Client.RespondWithKeyboard(conversationId, keyboard, text);
-
     public Task AnswerKeyboardResponse(Guid conversationId, KeyboardResponse keyboardResponse, string? alertMessage, bool showAlert = false, int cacheTime = 0)
         => Client.AnswerKeyboardResponse(conversationId, keyboardResponse, alertMessage, showAlert, cacheTime);
-
-    public Task EditKeyboard(Guid conversationId, long messageId, Keyboard newKeyboard, string? newText)
-        => Client.EditKeyboard(conversationId, messageId, newKeyboard, newText);
-
-    public Task EditText(Guid conversationId, long messageId, string newText)
-        => Client.EditText(conversationId, messageId, newText);
 
     public Task DeleteMessage(Guid conversationId, long messageId)
         => Client.DeleteMessage(conversationId, messageId);
 
     public Task PrepareBot()
         => Client.PrepareBot();
+
+    public Task ProcessUpdate(UpdateContext update, ConversationContext context)
+        => Client.ProcessUpdate(update, context);
+
+    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard = null)
+        => Client.SendMessage(conversationId, text, keyboard);
+
+    public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard = null)
+        => Client.EditMessage(conversationId, messageId, newText, newKeyboard);
+
+    public bool IsReferringToBot(string text)
+        => Client.IsReferringToBot(text);
+
+    public bool ContainsReferenceToBot(string text)
+        => Client.ContainsReferenceToBot(text);
+
 }

@@ -9,7 +9,17 @@ using System.Text.Json;
 
 namespace GLV.Shared.ChatBot.EntityFramework;
 
-public sealed class ConversationContextPacked : IDbModel<ConversationContextPacked, Guid>
+public interface IConversationContextModel<TKey>
+{
+    public TKey Id { get; set; }
+    public Guid ConversationId { get; set; }
+    public long Step { get; set; }
+    public string? ActiveAction { get; set; }
+    public ConversationContext Unpack();
+    public void Update(ConversationContext context);
+}
+
+public sealed class ConversationContextPacked : IConversationContextModel<long>, IDbModel<ConversationContextPacked, long>
 {
     private static readonly ConcurrentDictionary<string, Type> TypeCache = [];
     private static void RegisterType(Type type)
@@ -42,7 +52,7 @@ public sealed class ConversationContextPacked : IDbModel<ConversationContextPack
     public string? AssemblyQualifiedContextTypeName { get; set; }
     public string? JsonData { get; set; }
 
-    public void Repack(ConversationContext context)
+    public void Update(ConversationContext context)
     {
         var contextType = context.GetType();
         var json = JsonSerializer.Serialize(context, contextType);
@@ -81,8 +91,6 @@ public sealed class ConversationContextPacked : IDbModel<ConversationContextPack
         context.SetState(Step, ActiveAction);
         return context;
     }
-
-    Guid IKeyed<ConversationContextPacked, Guid>.Id => ConversationId;
 
     public static void BuildModel(DbContext context, EntityTypeBuilder<ConversationContextPacked> mb)
     {

@@ -1,7 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+﻿using GLV.Shared.ChatBot.Pipeline;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Frozen;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace GLV.Shared.ChatBot;
@@ -26,8 +27,9 @@ public partial class ChatBotManager
     private OnUpdateExceptionThrownHandler? exceptionHandler;
 
     public ChatBotManager(
-        Type defaultAction,
+        DefaultActionDefinition defaultAction,
         IEnumerable<ConversationActionDefinition> actions,
+        IEnumerable<Type> globalPipelineHandlers,
         ServiceDescriptor conversationStoreServiceDescription,
         string? chatBotManagerIdentifier = null,
         Func<UpdateContext, ValueTask<bool>>? updateFilter = null,
@@ -45,36 +47,70 @@ public partial class ChatBotManager
         UpdateFilter = updateFilter;
         Identifier = string.IsNullOrWhiteSpace(chatBotManagerIdentifier) ? Guid.NewGuid().ToString() : chatBotManagerIdentifier;
 
-        DefaultAction = defaultAction.IsAssignableTo(typeof(ConversationActionBase))
-        ? defaultAction
-        : throw new ArgumentException($"The type {defaultAction.Name} submitted as default action is not a sub-class of ConversationActionBase", nameof(defaultAction));
-
         var serviceCollection = configureServices ?? new ServiceCollection();
+
+        serviceCollection.Add(conversationStoreServiceDescription);
+
+        DefaultActionServiceKey = $"ConversationAction!{Identifier}::default";
+        serviceCollection.AddKeyedScoped(defaultAction.ConversationAction, DefaultActionServiceKey);
+
+        GlobalPipelineHandlers = globalPipelineHandlers?.Any() is not true
+            ? PipelineHandlerCollection.Empty
+            : new PipelineHandlerCollection(globalPipelineHandlers, serviceCollection, null);
+
+        DefaultAction = new ConversationActionInformation(
+            defaultAction.ConversationAction.IsAssignableTo(typeof(ConversationActionBase))
+            ? defaultAction.ConversationAction
+            : throw new ArgumentException($"The type {defaultAction.ConversationAction.Name} submitted as default action is not a sub-class of ConversationActionBase", nameof(defaultAction)),
+            null,
+            null,
+            null,
+            defaultAction.LocalPipelineHandlers,
+            serviceCollection
+        );
 
         Actions = actions.Select(ActionProcessor).ToFrozenDictionary();
         Commands = actions.Where(x => x.ValidateCommandTrigger())
                           .Select(CommandProcessor)
                           .ToFrozenDictionary();
 
-        serviceCollection.Add(conversationStoreServiceDescription);
+        ChatBotServices = serviceCollection.BuildServiceProvider();
 
-        KeyValuePair<string, ConversationActionDefinition> CommandProcessor(ConversationActionDefinition x) 
+        // -- Local functions
+
+        KeyValuePair<string, ConversationActionInformation> CommandProcessor(ConversationActionDefinition x)
             => x.ConversationAction.IsAssignableTo(typeof(ConversationActionBase)) is false
                 ? throw new InvalidDataException($"The type {x.ConversationAction.Name} submitted as command {x.CommandTrigger} is not a sub-class of ConversationActionBase")
-                : new(x.CommandTrigger!, x);
+                : new(
+                    x.CommandTrigger!,
+                    new ConversationActionInformation(
+                        x.ConversationAction,
+                        x.ActionName,
+                        x.CommandTrigger,
+                        x.CommandDescription,
+                        x.LocalPipelineHandlers,
+                        serviceCollection
+                    )
+                );
 
-        KeyValuePair<string, ConversationActionDefinition> ActionProcessor(ConversationActionDefinition x)
+        KeyValuePair<string, ConversationActionInformation> ActionProcessor(ConversationActionDefinition x)
         {
             if (x.ConversationAction.IsAssignableTo(typeof(ConversationActionBase)) is false)
                 throw new InvalidDataException($"The type {x.ConversationAction.Name} submitted as action {x.ActionName} is not a sub-class of ConversationActionBase");
 
             serviceCollection.AddKeyedTransient(x.ConversationAction, CoreComposeServiceKey(x.ActionName));
-            return new(x.ActionName, x);
+            return new(
+                    x.CommandTrigger!,
+                    new ConversationActionInformation(
+                        x.ConversationAction,
+                        x.ActionName,
+                        x.CommandTrigger,
+                        x.CommandDescription,
+                        x.LocalPipelineHandlers,
+                        serviceCollection
+                    )
+                );
         }
-
-        DefaultActionServiceKey = $"ConversationAction!{Identifier}::default";
-        serviceCollection.AddKeyedScoped(defaultAction, DefaultActionServiceKey);
-        ChatBotServices = serviceCollection.BuildServiceProvider(); // Dangerous?
     }
 
     /// <summary>
@@ -93,12 +129,23 @@ public partial class ChatBotManager
     
     public IServiceProvider ChatBotServices { get; }
 
-    public FrozenDictionary<string, ConversationActionDefinition> Actions { get; }
-    public FrozenDictionary<string, ConversationActionDefinition> Commands { get; }
+    public PipelineHandlerCollection GlobalPipelineHandlers { get; }
+
+    public FrozenDictionary<string, ConversationActionInformation> Actions { get; }
+    public FrozenDictionary<string, ConversationActionInformation> Commands { get; }
 
     public SinkLogMessageHandler? SinkLogMessageAction { get; set; }
 
-    public Type DefaultAction { get; }
+    public void SinkLogMessage(
+        int logLevel,
+        string message,
+        int eventId,
+        Exception? exception,
+        IServiceProvider? services = null
+    )
+        => SinkLogMessageAction?.Invoke(logLevel, message, eventId, exception, services ?? ChatBotServices);
+
+    public ConversationActionInformation DefaultAction { get; }
 
     public virtual IScopedChatBotClient ScopeClient(IChatBotClient client, Guid conversation)
         => new ScopedChatBotClient(conversation, client);
@@ -114,8 +161,8 @@ public partial class ChatBotManager
     private ConversationActionBase GetConversationAction(IServiceProvider services, string activeAction, Type type)
         => (ConversationActionBase)((IKeyedServiceProvider)services).GetKeyedService(type, ComposeServiceKey(activeAction))!;
 
-    private ConversationActionBase GetDefaultConversationAction(IServiceProvider services, Type type)
-        => (ConversationActionBase)((IKeyedServiceProvider)services).GetKeyedService(type, DefaultActionServiceKey)!;
+    private ConversationActionBase GetDefaultConversationAction(IServiceProvider services, ConversationActionInformation info)
+        => (ConversationActionBase)((IKeyedServiceProvider)services).GetKeyedService(info.ConversationAction, DefaultActionServiceKey)!;
 
     public virtual async ValueTask ConfigureChatBot(IChatBotClient client)
     {
@@ -171,7 +218,7 @@ public partial class ChatBotManager
     public virtual ValueTask<bool> CoreCheckForAction(
         UpdateContext update, 
         ConversationContext context,
-        IDictionary<string, ConversationActionDefinition> set,
+        IDictionary<string, ConversationActionInformation> set,
         bool setContextState
     )
     {
@@ -246,32 +293,47 @@ public partial class ChatBotManager
         var store = services.GetRequiredService<IConversationStore>();
 
         context ??= await GetOrCreateContext(store, update);
+
         var client = ScopeClient(update.Client, context.ConversationId);
+
+        if (update.IsHandledByBotClient)
+            await client.ProcessUpdate(update, context);
 
         try
         {
-            while (true) 
+            while (true && update.IsHandledByBotClient is false) 
             {
+                ConversationActionInformation? actionInfo = null;
                 ConversationActionBase action 
                     = string.IsNullOrWhiteSpace(context.ActiveAction)
                     ? GetDefaultConversationAction(services, DefaultAction)
-                        : Actions.TryGetValue(context.ActiveAction, out var actionDefinition)
-                    ? GetConversationAction(services, context.ActiveAction, actionDefinition.ConversationAction)
-                        : throw new InvalidDataException($"Could not find an action by the name of '{context.ActiveAction}'");
+                        : Actions.TryGetValue(context.ActiveAction, out actionInfo)
+                    ? GetConversationAction(services, context.ActiveAction, actionInfo.ConversationAction)
+                        : throw new ChatBotActionNotFoundException($"Could not find an action by the name of '{context.ActiveAction}'");
 
+                actionInfo ??= DefaultAction;
                 Debug.Assert(action is not null);
 
                 ConversationActionEndingKind ending;
                 try
                 {
-                    ending = await action.PerformActions(scope.ServiceProvider, store, context, update, this, client);
+                    ending = await action.PerformActions(
+                        scope.ServiceProvider, 
+                        store, 
+                        context, 
+                        update, 
+                        this, 
+                        client,
+                        actionInfo.Pipeline,
+                        actionInfo.ActionName
+                    );
                 }
                 catch(Exception exc)
                 {
                     var t = exceptionHandler?.Invoke(exc, client, scope.ServiceProvider);
                     if (t is ValueTask<ConversationActionEndingKind?> task && await task is ConversationActionEndingKind end)
                     {
-                        SinkLogMessageAction?.Invoke(2, "An exception was thrown while trying to perform an action", -12355522, exc, services);
+                        SinkLogMessageAction?.Invoke(3, "An exception was thrown while trying to perform an action", -12355522, exc, services);
                         if (end == ConversationActionEndingKind.Repeat)
                             continue;
 
@@ -287,6 +349,22 @@ public partial class ChatBotManager
                 break;
             }
         }
+        catch(ChatBotActionNotFoundException excp)
+        {
+            SinkLogMessageAction?.Invoke(3, "Could not find an action that was attempted to be performed", -1350155522, excp, services);
+            var t = exceptionHandler?.Invoke(excp, client, scope.ServiceProvider);
+            if (t is ValueTask<ConversationActionEndingKind?> task)
+                await task;
+            context.ResetState();
+        }
+        catch(Exception excp)
+        {
+            var t = exceptionHandler?.Invoke(excp, client, scope.ServiceProvider);
+            if (t is ValueTask<ConversationActionEndingKind?> task && await task is ConversationActionEndingKind end)
+                SinkLogMessageAction?.Invoke(4, "An exception was thrown while trying to perform an action", -1352155522, excp, services);
+            else
+                throw;
+        }
         finally
         {
             try
@@ -295,7 +373,7 @@ public partial class ChatBotManager
             }
             catch(Exception e)
             {
-                SinkLogMessageAction?.Invoke(3, "An unexpected error ocurred while trying to save the context", -232433452, e, services);
+                SinkLogMessageAction?.Invoke(4, "An unexpected error ocurred while trying to save the context", -232433452, e, services);
             }
         }
     }

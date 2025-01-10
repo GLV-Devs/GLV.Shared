@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using GLV.Shared.ChatBot.Pipeline;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -20,6 +21,7 @@ public abstract class ConversationActionBase
     /// <remarks>
     /// This property is only accesible whilst performing an action (i.e. inside <see cref="PerformAsync"/>). And will throw an exception if an attempt is made to access it otherwise
     /// </remarks>
+    [field: AllowNull]
     public ConversationContext Context
     {
         get => field ?? throw new InvalidOperationException("Context property is only available whilst performing an action");
@@ -27,11 +29,17 @@ public abstract class ConversationActionBase
     }
 
     /// <summary>
+    /// The ActionName of the ConversationAction
+    /// </summary>
+    public string? ActionName { get; private set; }
+
+    /// <summary>
     /// The Update Context surrounding the current action
     /// </summary>
     /// <remarks>
     /// This property is only accesible whilst performing an action (i.e. inside <see cref="PerformAsync"/>). And will throw an exception if an attempt is made to access it otherwise
     /// </remarks>
+    [field: AllowNull]
     public UpdateContext Update
     {
         get => field ?? throw new InvalidOperationException("Update property is only available whilst performing an action");
@@ -44,6 +52,7 @@ public abstract class ConversationActionBase
     /// <remarks>
     /// This property is only accesible whilst performing an action (i.e. inside <see cref="PerformAsync"/>). And will throw an exception if an attempt is made to access it otherwise
     /// </remarks>
+    [field: AllowNull]
     public ChatBotManager ChatBotManager
     {
         get => field ?? throw new InvalidOperationException("ChatBotManager property is only available whilst performing an action");
@@ -56,6 +65,7 @@ public abstract class ConversationActionBase
     /// <remarks>
     /// This property is only accesible whilst performing an action (i.e. inside <see cref="PerformAsync"/>). And will throw an exception if an attempt is made to access it otherwise
     /// </remarks>
+    [field: AllowNull]
     public IServiceProvider Services
     {
         get => field ?? throw new InvalidOperationException("Services property is only available whilst performing an action");
@@ -68,6 +78,7 @@ public abstract class ConversationActionBase
     /// <remarks>
     /// This property is only accesible whilst performing an action (i.e. inside <see cref="PerformAsync"/>). And will throw an exception if an attempt is made to access it otherwise
     /// </remarks>
+    [field: AllowNull]
     public IConversationStore ConversationStore
     {
         get => field ?? throw new InvalidOperationException("ConversationStore property is only available whilst performing an action");
@@ -80,10 +91,32 @@ public abstract class ConversationActionBase
     /// <remarks>
     /// This property is only accesible whilst performing an action (i.e. inside <see cref="PerformAsync"/>). And will throw an exception if an attempt is made to access it otherwise
     /// </remarks>
+    [field: AllowNull]
     public IScopedChatBotClient Bot
     {
         get => field ?? throw new InvalidOperationException("Context property is only available whilst performing an action");
         private set;
+    }
+
+    private PipelineHandlerCollection? Pipeline;
+
+    public void SinkLogMessage(int logLevel, string message, int eventId, Exception? exception)
+        => ChatBotManager.SinkLogMessage(logLevel, message, eventId, exception, Services);
+
+    public async Task<bool> ExecuteActionPipeline(bool excludeGlobalHandlers = false)
+    {
+        Debug.Assert(Pipeline is not null);
+
+        var pipelineContext = Update.pipelineContext ??= new PipelineContext(this);
+        pipelineContext.Handled = false;
+
+        if (Update.Message is Message message && await Pipeline.ExecuteMessageHandlerLine(ActionName, message, pipelineContext))
+            return true;
+
+        if (Update.KeyboardResponse is KeyboardResponse kr && await Pipeline.ExecuteKeyboardHandlerLine(ActionName, kr, pipelineContext))
+            return true;
+        
+        return false;
     }
 
     /// <summary>
@@ -100,17 +133,31 @@ public abstract class ConversationActionBase
         if (ChatBotManager.CheckForCancellation(Update, Context, setContextState))
         {
             if (string.IsNullOrWhiteSpace(notificationText) is false)
-                await Bot.RespondWithText(notificationText);
+                await Bot.SendMessage(notificationText);
             return true;
         }
         return false;
     }
 
-    internal async Task<ConversationActionEndingKind> PerformActions(IServiceProvider services, IConversationStore store, ConversationContext context, UpdateContext update, ChatBotManager manager, IScopedChatBotClient client)
+    internal async Task<ConversationActionEndingKind> PerformActions(
+        IServiceProvider services, 
+        IConversationStore store, 
+        ConversationContext context, 
+        UpdateContext update, 
+        ChatBotManager manager, 
+        IScopedChatBotClient client,
+        PipelineHandlerCollection pipeline,
+        string? actionName
+    )
     {
+        Debug.Assert(actionName is null || string.IsNullOrWhiteSpace(actionName) is false);
         Debug.Assert(context is not null);
         Debug.Assert(update is not null);
         Debug.Assert(manager is not null);
+        Debug.Assert(pipeline is not null);
+        Debug.Assert(client is not null);
+        Debug.Assert(store is not null);
+        Debug.Assert(services is not null);
 
         Context = context;
         Bot = client;
@@ -118,6 +165,7 @@ public abstract class ConversationActionBase
         ConversationStore = store;
         Services = services;
         Update = update;
+        Pipeline = pipeline;
         try
         {
             return await PerformAsync(update);
@@ -128,7 +176,9 @@ public abstract class ConversationActionBase
             Bot = null!;
             ChatBotManager = null!;
             ConversationStore = null!;
+            Services = null!;
             Update = null!;
+            Pipeline = null!;
         }
     }
 
