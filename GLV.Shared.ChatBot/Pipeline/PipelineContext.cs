@@ -19,5 +19,7 @@ public sealed record class PipelineContext(ConversationActionBase ActiveAction)
     internal void AddProcessorPass(Type type)
         => processedBy.Add(type);
 
-    public bool Handled { get; set; } 
+    public bool Handled { get; set; }
+    public void MarkAsHandled(bool handled = true)
+        => Handled = handled;
 }

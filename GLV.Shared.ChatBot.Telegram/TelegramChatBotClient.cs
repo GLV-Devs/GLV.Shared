@@ -121,7 +121,7 @@ public class TelegramChatBotClient : IChatBotClient
         }
     }
 
-    public async Task<long> SendMessage(Guid conversationId, string? text, Keyboard? kr)
+    public async Task<long> SendMessage(Guid conversationId, string? text, Keyboard? kr, bool html = false)
     {
         var id = conversationId.UnpackTelegramConversationId();
         WTelegram.Types.Message msg;
@@ -131,6 +131,7 @@ public class TelegramChatBotClient : IChatBotClient
             msg = await BotClient.SendMessage(
                 id,
                 text ?? " ",
+                parseMode: html ? ParseMode.Html : ParseMode.None,
                 replyMarkup: ParseKeyboard(keyboard)
             );
         }
@@ -139,7 +140,8 @@ public class TelegramChatBotClient : IChatBotClient
             ArgumentException.ThrowIfNullOrWhiteSpace(text);
             msg = await BotClient.SendMessage(
                 id,
-                text
+                text ?? " ",
+                parseMode: html ? ParseMode.Html : ParseMode.None
             );
         }
 
@@ -155,7 +157,7 @@ public class TelegramChatBotClient : IChatBotClient
             cacheTime
         );
 
-    public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard)
+    public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, bool html = false)
     {
         var chatId = conversationId.UnpackTelegramConversationId();
         var markup = newKeyboard is Keyboard kb ? ParseKeyboard(kb) : null;
@@ -170,7 +172,7 @@ public class TelegramChatBotClient : IChatBotClient
             await BotClient.EditMessageReplyMarkup(chatId, mid, markup);
         }
         else // This also covers the case where neither is null
-            await BotClient.EditMessageText(chatId, mid, newText, replyMarkup: markup);
+            await BotClient.EditMessageText(chatId, mid, newText, replyMarkup: markup, parseMode: html ? ParseMode.Html : ParseMode.None);
     }
 
     public static InlineKeyboardMarkup ParseKeyboard(in Keyboard keyboard)

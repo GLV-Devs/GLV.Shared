@@ -7,8 +7,8 @@ public interface IScopedChatBotClient : IChatBotClient
 {
     public Guid ScopedConversation { get; }
 
-    public Task<long> SendMessage(string? text, Keyboard? keyboard = null)
-        => SendMessage(ScopedConversation, text, keyboard);
+    public Task<long> SendMessage(string? text, Keyboard? keyboard = null, bool html = false)
+        => SendMessage(ScopedConversation, text, keyboard, html);
 
     public Task AnswerKeyboardResponse(KeyboardResponse keyboardResponse, string? alertMessage, bool showAlert = false, int cacheTime = 0)
         => AnswerKeyboardResponse(ScopedConversation, keyboardResponse, alertMessage, showAlert, cacheTime);
@@ -16,7 +16,7 @@ public interface IScopedChatBotClient : IChatBotClient
     public Task DeleteMessage(long messageId)
         => DeleteMessage(ScopedConversation, messageId);
 
-    public Task EditMessage(long messageId, string? newText, Keyboard? newKeyboard = null)
+    public Task EditMessage(long messageId, string? newText, Keyboard? newKeyboard = null, bool html = false)
         => EditMessage(ScopedConversation, messageId, newText, newKeyboard);
 
     public Task<bool> TryDeleteMessage(long messageId)
@@ -32,8 +32,8 @@ public interface IChatBotClient
     public Task SetBotCommands(IEnumerable<ConversationActionInformation> commands);
     public Task SetBotDescription(string name, string? shortDescription = null, string? description = null, CultureInfo? culture = null);
     public Task AnswerKeyboardResponse(Guid conversationId, KeyboardResponse keyboardResponse, string? alertMessage, bool showAlert = false, int cacheTime = 0);
-    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard = null);
-    public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard = null);
+    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard = null, bool html = false);
+    public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard = null, bool html = false);
     public Task DeleteMessage(Guid conversationId, long messageId);
 
     public async Task<bool> TryDeleteMessage(Guid conversationId, long messageId)

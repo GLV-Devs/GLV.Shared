@@ -34,11 +34,11 @@ public class ScopedChatBotClient(Guid scopedConversation, IChatBotClient client)
     public Task ProcessUpdate(UpdateContext update, ConversationContext context)
         => Client.ProcessUpdate(update, context);
 
-    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard = null)
-        => Client.SendMessage(conversationId, text, keyboard);
+    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard, bool html)
+        => Client.SendMessage(conversationId, text, keyboard, html);
 
-    public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard = null)
-        => Client.EditMessage(conversationId, messageId, newText, newKeyboard);
+    public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, bool html)
+        => Client.EditMessage(conversationId, messageId, newText, newKeyboard, html);
 
     public bool IsReferringToBot(string text)
         => Client.IsReferringToBot(text);
