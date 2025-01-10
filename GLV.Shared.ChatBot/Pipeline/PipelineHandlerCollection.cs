@@ -75,7 +75,7 @@ public sealed class PipelineHandlerCollection : IEnumerable<Type>
         var services = context.Services;
         for (int i = 0; i < KeyboardHandlers.Length; i++)
         {
-            var messageHandlerType = MessageHandlers[i];
+            var messageHandlerType = KeyboardHandlers[i];
             var handler = (IChatBotPipelineKeyboardHandler)services.GetRequiredKeyedService(messageHandlerType, PipelineHandlerServiceKey);
             context.AddProcessorPass(messageHandlerType);
             await handler.TryProcessKeyboardResponse(context, keyboardResponse);

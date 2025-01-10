@@ -24,7 +24,7 @@ public partial class ChatBotManager
             => obj.ConversationAction.GetHashCode();
     }
 
-    public static (DefaultActionDefinition defaultAction, List<ConversationActionDefinition> actions) GatherReflectedActions(
+    public static (DefaultActionDefinition defaultAction, HashSet<ConversationActionDefinition> actions) GatherReflectedActions(
         Func<ConversationActionAttribute.ActionInfoDetails, bool>? predicate = null,
         IEnumerable<Assembly>? assemblies = null
     )
@@ -38,7 +38,6 @@ public partial class ChatBotManager
             q = q.Where(predicate);
 
         DefaultActionDefinition? defaultAction = null;
-        List<ConversationActionDefinition> actions = [];
 
         HashSet<ConversationActionDefinition> actionInfos = new(ConversationActionDefinitionEqualityComparer.Comparer);
         foreach (var action in q)
@@ -70,7 +69,7 @@ public partial class ChatBotManager
         if (defaultAction.HasValue is false)
             throw new InvalidDataException($"Could not locate a valid default action");
 
-        return (defaultAction.Value, actions);
+        return (defaultAction.Value, actionInfos);
     }
 
     public static ChatBotManager CreateChatBotWithReflectedActions(

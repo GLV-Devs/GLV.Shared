@@ -79,19 +79,16 @@ public partial class ChatBotManager
         // -- Local functions
 
         KeyValuePair<string, ConversationActionInformation> CommandProcessor(ConversationActionDefinition x)
-            => x.ConversationAction.IsAssignableTo(typeof(ConversationActionBase)) is false
-                ? throw new InvalidDataException($"The type {x.ConversationAction.Name} submitted as command {x.CommandTrigger} is not a sub-class of ConversationActionBase")
-                : new(
-                    x.CommandTrigger!,
-                    new ConversationActionInformation(
-                        x.ConversationAction,
-                        x.ActionName,
-                        x.CommandTrigger,
-                        x.CommandDescription,
-                        x.LocalPipelineHandlers,
-                        serviceCollection
-                    )
-                );
+        {
+            Debug.Assert(Actions.ContainsKey(x.ActionName));
+
+            return x.ConversationAction.IsAssignableTo(typeof(ConversationActionBase)) is false
+                        ? throw new InvalidDataException($"The type {x.ConversationAction.Name} submitted as command {x.CommandTrigger} is not a sub-class of ConversationActionBase")
+                        : new(
+                            x.CommandTrigger!,
+                            Actions[x.ActionName]
+                        );
+        }
 
         KeyValuePair<string, ConversationActionInformation> ActionProcessor(ConversationActionDefinition x)
         {
@@ -100,7 +97,7 @@ public partial class ChatBotManager
 
             serviceCollection.AddKeyedTransient(x.ConversationAction, CoreComposeServiceKey(x.ActionName));
             return new(
-                    x.CommandTrigger!,
+                    x.ActionName!,
                     new ConversationActionInformation(
                         x.ConversationAction,
                         x.ActionName,
@@ -226,7 +223,7 @@ public partial class ChatBotManager
         {
             int index = msg.Text.IndexOf(' ');
             var cmdText = index > 0 ? msg.Text[..index] : msg.Text;
-            if(update.Client.IsValidBotCommand(cmdText, out var cmd) && Commands.TryGetValue(cmd, out var definition))
+            if (update.Client.IsValidBotCommand(cmdText, out var cmd) && Commands.TryGetValue(cmd, out var definition)) 
             {
                 if(setContextState)
                     context.SetState(0, definition.ActionName);
