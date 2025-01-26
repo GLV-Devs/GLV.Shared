@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLV.Shared.Hosting", "GLV.S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLV.Shared.EntityFrameworkHosting", "GLV.Shared.EntityFrameworkHosting\GLV.Shared.EntityFrameworkHosting.csproj", "{85F54CA7-BD9B-49D7-88B5-07DC2EBF2210}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GLV.Shared.Blazor", "GLV.Shared.Blazor\GLV.Shared.Blazor.csproj", "{DCDC3875-4C6D-4E2C-9387-82321EA5D085}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,10 @@ Global
 		{85F54CA7-BD9B-49D7-88B5-07DC2EBF2210}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{85F54CA7-BD9B-49D7-88B5-07DC2EBF2210}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{85F54CA7-BD9B-49D7-88B5-07DC2EBF2210}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCDC3875-4C6D-4E2C-9387-82321EA5D085}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCDC3875-4C6D-4E2C-9387-82321EA5D085}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCDC3875-4C6D-4E2C-9387-82321EA5D085}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCDC3875-4C6D-4E2C-9387-82321EA5D085}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

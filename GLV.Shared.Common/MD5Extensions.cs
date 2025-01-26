@@ -98,22 +98,32 @@ public static class MD5Extensions
 
     #region ToSpan
 
-    public static int TryHashToMD5(this byte[] bytes, Span<byte> output)
-        => TryHashToMD5(bytes.AsSpan(), output);
+    public static int TryHashToMD5(this byte[] bytes, Span<byte> output, bool allowTruncation = false)
+        => TryHashToMD5(bytes.AsSpan(), output, allowTruncation);
 
-    public static int TryHashToMD5(this Span<byte> bytes, Span<byte> output)
-        => TryHashToMD5(bytes, output);
+    public static int TryHashToMD5(this Span<byte> bytes, Span<byte> output, bool allowTruncation = false)
+        => TryHashToMD5((ReadOnlySpan<byte>)bytes, output, allowTruncation);
 
-    public static int TryHashToMD5(this ReadOnlySpan<byte> bytes, Span<byte> output)
-        => MD5.HashData(bytes, output);
+    public static int TryHashToMD5(this ReadOnlySpan<byte> bytes, Span<byte> output, bool allowTruncation = false)
+    {
+        if (MD5.HashSizeInBytes > output.Length && allowTruncation)
+        {
+            Span<byte> hash = stackalloc byte[MD5.HashSizeInBytes];
+            int written = MD5.HashData(bytes, hash);
+            for (int i = 0; i < output.Length; i++) output[i] = hash[i];
+            return hash.Length;
+        }
 
-    public static int TryHashToMD5(this string str, Span<byte> output)
-        => TryHashToMD5(str.AsSpan(), output);
+        return MD5.HashData(bytes, output);
+    }
 
-    public static int TryHashToMD5(this Span<char> str, Span<byte> output)
-        => TryHashToMD5((ReadOnlySpan<char>)str, output);
+    public static int TryHashToMD5(this string str, Span<byte> output, bool allowTruncation = false)
+        => TryHashToMD5(str.AsSpan(), output, allowTruncation);
 
-    public static int TryHashToMD5(this ReadOnlySpan<char> str, Span<byte> output)
+    public static int TryHashToMD5(this Span<char> str, Span<byte> output, bool allowTruncation = false)
+        => TryHashToMD5((ReadOnlySpan<char>)str, output, allowTruncation);
+
+    public static int TryHashToMD5(this ReadOnlySpan<char> str, Span<byte> output, bool allowTruncation = false)
     {
         byte[]? rented = null;
 
@@ -123,7 +133,7 @@ public static class MD5Extensions
 
         try
         {
-            return MD5.HashData(bytes, output);
+            return TryHashToMD5(bytes, output, allowTruncation);
         }
         finally
         {
