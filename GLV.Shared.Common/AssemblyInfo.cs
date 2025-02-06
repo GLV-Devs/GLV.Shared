@@ -6,22 +6,14 @@ public static class AssemblyInfo
 {
     public const string VersionStringFormat = "{0} ({1})";
 
-    public sealed class AssemblyInfoSnapshot
+    public record class AssemblyInfoSnapshot(Assembly Assembly)
     {
-        internal AssemblyInfoSnapshot(Assembly assembly)
-        {
-            Version = GetVersion(assembly).ToString();
-            AppTitle = GetAssemblyTitle(assembly);
-            Author = GetAssemblyAuthors(assembly).AuthorString;
-            Company = GetAssemblyCompany(assembly);
-            Copyright = GetAssemblyCopyright(assembly);
-        }
-
-        public string Version { get; }
-        public string AppTitle { get; }
-        public string Author { get; }
-        public string Company { get; }
-        public string Copyright { get; }
+        public string Version { get; } = GetVersion(Assembly).ToString();
+        public string AppTitle { get; } = GetAssemblyTitle(Assembly);
+        public string Author { get; } = GetAssemblyAuthors(Assembly).AuthorString;
+        public string Company { get; } = GetAssemblyCompany(Assembly);
+        public string Copyright { get; } = GetAssemblyCopyright(Assembly);
+        public DateTime BuildDate { get; } = GetBuildDate(Assembly);
     }
 
     #region Implicit Assembly
