@@ -30,7 +30,7 @@ public static class ModelManipulationHelper
         return false;
     }
 
-    public static bool IsUpdatingNullableString<T>(UpdateNullableStruct<T>? updateNullable, out T? value)
+    public static bool IsUpdatingNullableReference<T>(UpdateNullableStruct<T>? updateNullable, out T? value)
     {
         if (updateNullable.HasValue)
         {

@@ -2,7 +2,7 @@
 
 public interface IKeyed<TEntity, TKey>
     where TEntity : class
-    where TKey : unmanaged
+    where TKey : notnull
 {
     public TKey Id { get; }
 }

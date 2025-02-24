@@ -2,7 +2,7 @@
 
 public interface IRepository<TModel, TKey, TView, TCreateModel, TUpdateModel>
     where TModel : class, IKeyed<TModel, TKey>
-    where TKey : unmanaged
+    where TKey : notnull
 {
     public ValueTask<SuccessResult<TModel>> Find(TKey id);
 
