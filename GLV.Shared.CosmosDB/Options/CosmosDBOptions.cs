@@ -9,7 +9,6 @@ namespace GLV.Shared.CosmosDB.Options;
 
 public sealed class CosmosDBOptions
 {
-    public CosmosClientOptions? ClientOptions { get; set; }
     public string? Endpoint { get; set; }
     public string? AuthKeyOrResourceToken { get; set; }
     public string? DatabaseName { get; set; }

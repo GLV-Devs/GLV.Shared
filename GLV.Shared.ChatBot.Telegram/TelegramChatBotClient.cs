@@ -1,7 +1,10 @@
 ﻿using GLV.Shared.ChatBot;
+using GLV.Shared.Common;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Net.Mail;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -50,6 +53,8 @@ public class TelegramChatBotClient : IChatBotClient
     public Func<Update, ChatBotManager, Task>? UpdateHandler { get; }
 
     private Regex CheckCommandRegex;
+
+    public bool AllowMultipleAttachmentsThroughMultipleMessages { get; init; }
 
     public string BotHandle 
     {
@@ -121,27 +126,94 @@ public class TelegramChatBotClient : IChatBotClient
         }
     }
 
-    public async Task<long> SendMessage(Guid conversationId, string? text, Keyboard? kr, bool html = false)
+    public async Task<long> SendMessage(
+        Guid conversationId, 
+        string? text, 
+        Keyboard? kr, 
+        IEnumerable<MessageAttachment>? attachments = null,
+        MessageOptions options = default
+    )
     {
         var id = conversationId.UnpackTelegramConversationId();
         WTelegram.Types.Message msg;
 
+        IReplyMarkup? markup = null;
+
         if (kr is Keyboard keyboard)
+            markup = ParseKeyboard(keyboard);
+        else
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+        if (attachments is not null && attachments.Any())
         {
-            msg = await BotClient.SendMessage(
-                id,
-                text ?? " ",
-                parseMode: html ? ParseMode.Html : ParseMode.None,
-                replyMarkup: ParseKeyboard(keyboard)
-            );
+            var attachCount = attachments.Count();
+            if (attachCount > 1 && AllowMultipleAttachmentsThroughMultipleMessages is false)
+                throw new InvalidOperationException("Cannot send multiple attachments in a single message. Try setting AllowMultipleAttachmentsThroughMultipleMessages to true");
+            else
+            {
+                Unsafe.SkipInit(out msg); // We already know there's at least one attachment. But we still check later
+#if DEBUG
+                int attachmentCount = 0;
+#endif
+
+                foreach (var attachment in attachments)
+                {
+                    msg = attachment.AttachmentKind switch
+                    {
+                        MessageAttachmentKind.File => await BotClient.SendDocument(
+                                                        id,
+                                                        new InputFileStream(attachment.GetContent(), attachment.AttachmentTitle),
+                                                        text ?? " ",
+                                                        parseMode: options.Html ? ParseMode.Html : ParseMode.None,
+                                                        replyMarkup: markup,
+                                                        protectContent: attachment.ProtectContent,
+                                                        disableNotification: options.SendWithoutNotification
+                                                    ),
+                        MessageAttachmentKind.Audio => await BotClient.SendAudio(
+                                                        id,
+                                                        new InputFileStream(attachment.GetContent(), attachment.AttachmentTitle),
+                                                        text ?? " ",
+                                                        parseMode: options.Html ? ParseMode.Html : ParseMode.None,
+                                                        replyMarkup: markup,
+                                                        protectContent: attachment.ProtectContent,
+                                                        disableNotification: options.SendWithoutNotification
+                                                    ),
+                        MessageAttachmentKind.Image => await BotClient.SendPhoto(
+                                                        id,
+                                                        new InputFileStream(attachment.GetContent(), attachment.AttachmentTitle),
+                                                        text ?? " ",
+                                                        parseMode: options.Html ? ParseMode.Html : ParseMode.None,
+                                                        hasSpoiler: attachment.IsSpoiler,
+                                                        replyMarkup: markup,
+                                                        protectContent: attachment.ProtectContent,
+                                                        disableNotification: options.SendWithoutNotification
+                                                    ),
+                        MessageAttachmentKind.Video => await BotClient.SendVideo(
+                                                        id,
+                                                        new InputFileStream(attachment.GetContent(), attachment.AttachmentTitle),
+                                                        text ?? " ",
+                                                        parseMode: options.Html ? ParseMode.Html : ParseMode.None,
+                                                        replyMarkup: markup,
+                                                        protectContent: attachment.ProtectContent,
+                                                        disableNotification: options.SendWithoutNotification
+                                                    ),
+                        _ => throw new ArgumentException("Encountered an attachment with no known or supported MessageAttachmentKind", nameof(attachments)),
+                    };
+                }
+
+#if DEBUG
+                Debug.Assert(attachmentCount > 0);
+#endif
+            }
         }
         else
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(text);
             msg = await BotClient.SendMessage(
                 id,
                 text ?? " ",
-                parseMode: html ? ParseMode.Html : ParseMode.None
+                parseMode: options.Html ? ParseMode.Html : ParseMode.None,
+                replyMarkup: markup,
+                disableNotification: options.SendWithoutNotification
             );
         }
 
@@ -157,7 +229,7 @@ public class TelegramChatBotClient : IChatBotClient
             cacheTime
         );
 
-    public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, bool html = false)
+    public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, MessageOptions options = default)
     {
         var chatId = conversationId.UnpackTelegramConversationId();
         var markup = newKeyboard is Keyboard kb ? ParseKeyboard(kb) : null;
@@ -172,7 +244,7 @@ public class TelegramChatBotClient : IChatBotClient
             await BotClient.EditMessageReplyMarkup(chatId, mid, markup);
         }
         else // This also covers the case where neither is null
-            await BotClient.EditMessageText(chatId, mid, newText, replyMarkup: markup, parseMode: html ? ParseMode.Html : ParseMode.None);
+            await BotClient.EditMessageText(chatId, mid, newText, replyMarkup: markup, parseMode: options.Html ? ParseMode.Html : ParseMode.None);
     }
 
     public static InlineKeyboardMarkup ParseKeyboard(in Keyboard keyboard)
@@ -206,4 +278,22 @@ public class TelegramChatBotClient : IChatBotClient
 
     public bool ContainsReferenceToBot(string text)
         => text.Contains($"@{BotHandle}", StringComparison.OrdinalIgnoreCase);
+
+    public SupportedFeatures SupportedFeatures => field ??= new()
+    {
+        InlineKeyboards = true,
+        MessageAttachments = true,
+        ImageMessageAttachment = true,
+        AudioMessageAttachment = true,
+        VideoMessageAttachment = true,
+        SpoilerAttachments = true,
+        AttachmentTitles = true,
+        ThumbnailAttachments = false,
+        AttachmentDuration = false,
+        MultipleAttachments = AllowMultipleAttachmentsThroughMultipleMessages,
+        AttachmentDescriptions = false,
+        SendWithoutNotification = true,
+        ProtectMediaContent = true,
+        HtmlText = true
+    };
 }

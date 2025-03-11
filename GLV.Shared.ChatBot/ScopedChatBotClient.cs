@@ -34,11 +34,18 @@ public class ScopedChatBotClient(Guid scopedConversation, IChatBotClient client)
     public Task ProcessUpdate(UpdateContext update, ConversationContext context)
         => Client.ProcessUpdate(update, context);
 
-    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard, bool html)
-        => Client.SendMessage(conversationId, text, keyboard, html);
+    public Task<long> SendMessage(
+        Guid conversationId, 
+        string? text, 
+        Keyboard? keyboard, 
+        IEnumerable<MessageAttachment>? 
+        attachments = null,
+        MessageOptions options = default
+    )
+        => Client.SendMessage(conversationId, text, keyboard, attachments, options);
 
-    public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, bool html)
-        => Client.EditMessage(conversationId, messageId, newText, newKeyboard, html);
+    public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, MessageOptions options = default)
+        => Client.EditMessage(conversationId, messageId, newText, newKeyboard, options);
 
     public bool IsReferringToBot(string text)
         => Client.IsReferringToBot(text);
@@ -46,4 +53,5 @@ public class ScopedChatBotClient(Guid scopedConversation, IChatBotClient client)
     public bool ContainsReferenceToBot(string text)
         => Client.ContainsReferenceToBot(text);
 
+    public SupportedFeatures SupportedFeatures => Client.SupportedFeatures;
 }

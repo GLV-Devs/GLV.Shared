@@ -1,4 +1,5 @@
-﻿using GLV.Shared.Data;
+﻿using Dapper;
+using GLV.Shared.Data;
 using GLV.Shared.EntityFramework;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -8,16 +9,6 @@ using System.Reflection;
 using System.Text.Json;
 
 namespace GLV.Shared.ChatBot.EntityFramework;
-
-public interface IConversationContextModel<TKey>
-{
-    public TKey Id { get; set; }
-    public Guid ConversationId { get; set; }
-    public long Step { get; set; }
-    public string? ActiveAction { get; set; }
-    public ConversationContext Unpack();
-    public void Update(ConversationContext context);
-}
 
 public sealed class ConversationContextPacked : IConversationContextModel<long>, IDbModel<ConversationContextPacked, long>
 {
@@ -79,6 +70,70 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
             AssemblyQualifiedContextTypeName = contextType.AssemblyQualifiedName!,
             JsonData = json,
         };
+    }
+
+    public static async Task UpdateHandler(
+        ConversationContext context, 
+        Guid convoId, 
+        DbContext db, 
+        Func<ConversationContext, ConversationContextPacked> entityFactory
+    )
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(db);
+        ArgumentNullException.ThrowIfNull(entityFactory);
+
+        var tabname = GetContextModelTableName(db);
+        var conn = db.Database.GetDbConnection();
+
+        var contextType = context.GetType();
+        var json = JsonSerializer.Serialize(context, contextType);
+        RegisterType(contextType);
+
+        int rows = await conn.QuerySingleAsync<int>($"select count(Id) from {tabname} where conversationId = {convoId}") > 0
+            ? await conn.ExecuteAsync( // it exists
+                $""""
+                update {tabname}
+                set 
+                    Step = {context.Step},
+                    ActiveAction = '{context.ActiveAction}',
+                    Encoding = 'json',
+                    AssemblyQualifiedContextTypeName = '{contextType.AssemblyQualifiedName}',
+                    JsonData = '{json}'
+                where conversationId = {convoId};
+                """"
+            )
+            : await conn.ExecuteAsync( // it does not exist
+                $""""
+                insert into {tabname} 
+                (
+                    ConversationId,
+                    Step,
+                    ActiveAction,
+                    Encoding,
+                    AssemblyQualifiedContextTypeName,
+                    JsonData
+                )
+                values
+                (
+                    '{context.ConversationId}',
+                    {context.Step},
+                    '{context.ActiveAction}',
+                    'json',
+                    '{contextType.AssemblyQualifiedName}',
+                    '{json}'
+                );
+                """"
+            );
+
+        Debug.Assert(rows > 0);
+    }
+
+    private static string GetContextModelTableName(DbContext context)
+    {
+        var tabname = context.Set<ConversationContextPacked>().EntityType.GetTableName();
+        Debug.Assert(string.IsNullOrWhiteSpace(tabname) is false);
+        return tabname;
     }
 
     public ConversationContext Unpack()

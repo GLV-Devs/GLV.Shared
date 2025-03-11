@@ -59,7 +59,7 @@ public readonly struct Snowflake : IEquatable<Snowflake>, IComparable<Snowflake>
             LastStamp = stamp;
         }
 
-        return new Snowflake(stamp, LastIndex++, SnowflakeMachineId);
+        return new Snowflake(LastStamp, LastIndex++, SnowflakeMachineId);
     }
 
     public long AsLong() => aslong;

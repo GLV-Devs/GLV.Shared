@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Headers;
@@ -6,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace GLV.Shared.Common;
+
 public static class HttpExtensions
 {
     public static TimeSpan GetRetryAfterTime(this RetryConditionHeaderValue? header)

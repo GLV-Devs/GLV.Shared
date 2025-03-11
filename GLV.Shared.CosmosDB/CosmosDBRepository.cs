@@ -50,6 +50,22 @@ public abstract class CosmosDBRepository<TModel, TKey, TView, TCreateModel, TUpd
         return new(err);
     }
 
+    public static SuccessResult<T> ModelFailureResult<T>(HttpStatusCode StatusCode)
+    {
+        var err = new ErrorList(StatusCode);
+        err.AddError(
+            new ErrorMessage(
+                $"An error ocurred in CosmoDB whilst attempting the request: {StatusCode}",
+                "CosmosDBError",
+                [
+                    new ErrorMessageProperty("StatusCode", StatusCode.ToString())
+                ]
+            )
+        );
+
+        return new(err);
+    }
+
     public static SuccessResult<TModel> ModelFailureResult(HttpStatusCode StatusCode)
     {
         var err = new ErrorList(StatusCode);
