@@ -41,8 +41,7 @@ public class ScopedChatBotClient(Guid scopedConversation, IChatBotClient client)
         IEnumerable<MessageAttachment>? 
         attachments = null,
         MessageOptions options = default
-    )
-        => Client.SendMessage(conversationId, text, keyboard, attachments, options);
+    ) => Client.SendMessage(conversationId, text, keyboard, attachments, options);
 
     public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, MessageOptions options = default)
         => Client.EditMessage(conversationId, messageId, newText, newKeyboard, options);

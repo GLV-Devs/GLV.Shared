@@ -18,7 +18,7 @@ public partial class ChatBotManager
         Exception? exception,
         IServiceProvider services
     );
-    public delegate ValueTask<ConversationActionEndingKind?> OnUpdateExceptionThrownHandler(
+    public delegate ValueTask OnUpdateExceptionThrownHandler(
         Exception exc, 
         IScopedChatBotClient client, 
         IServiceProvider services
@@ -190,8 +190,8 @@ public partial class ChatBotManager
     /// <param name="update"></param>
     /// <param name="context"></param>
     /// <param name="setContextState">If <see langword="true"/>, then the context will be set to step 0 of the Conversation Action</param>
-    public ValueTask<bool> CheckIfCommand(UpdateContext update, ConversationContext context, bool setContextState = true)
-        => CoreCheckForAction(update, context, Commands, setContextState);
+    public ValueTask<ConversationActionInformation?> CheckIfCommand(UpdateContext update)
+        => CoreCheckForAction(update, Commands);
 
     /// <summary>
     /// Checks if the user is attempting to cancel the current action
@@ -212,11 +212,9 @@ public partial class ChatBotManager
         return false;
     }
 
-    public virtual ValueTask<bool> CoreCheckForAction(
-        UpdateContext update, 
-        ConversationContext context,
-        IDictionary<string, ConversationActionInformation> set,
-        bool setContextState
+    public virtual ValueTask<ConversationActionInformation?> CoreCheckForAction(
+        UpdateContext update,
+        IDictionary<string, ConversationActionInformation> set
     )
     {
         if (update.Message is Message msg && string.IsNullOrWhiteSpace(msg.Text) is false)
@@ -225,13 +223,11 @@ public partial class ChatBotManager
             var cmdText = index > 0 ? msg.Text[..index] : msg.Text;
             if (update.Client.IsValidBotCommand(cmdText, out var cmd) && Commands.TryGetValue(cmd, out var definition)) 
             {
-                if(setContextState)
-                    context.SetState(0, definition.ActionName);
-                return ValueTask.FromResult(true);
+                return ValueTask.FromResult<ConversationActionInformation?>(definition);
             }
         }
 
-        return ValueTask.FromResult(false);
+        return ValueTask.FromResult<ConversationActionInformation?>(null);
     }
 
     // This method should also receive a set of commands to look through
@@ -291,6 +287,12 @@ public partial class ChatBotManager
 
         context ??= await GetOrCreateContext(store, update);
 
+        if (string.IsNullOrWhiteSpace(update.JumpToActiveAction) is false)
+        {
+            if (Actions.ContainsKey(update.JumpToActiveAction))
+                context.SetState(update.JumpToActiveActionStep ?? 0, update.JumpToActiveAction);
+        }
+
         var client = ScopeClient(update.Client, context.ConversationId);
 
         if (update.IsHandledByBotClient)
@@ -304,17 +306,16 @@ public partial class ChatBotManager
                 ConversationActionBase action 
                     = string.IsNullOrWhiteSpace(context.ActiveAction)
                     ? GetDefaultConversationAction(services, DefaultAction)
-                        : Actions.TryGetValue(context.ActiveAction, out actionInfo)
-                    ? GetConversationAction(services, context.ActiveAction, actionInfo.ConversationAction)
+                    : Actions.TryGetValue(context.ActiveAction, out actionInfo)
+                        ? GetConversationAction(services, context.ActiveAction, actionInfo.ConversationAction)
                         : throw new ChatBotActionNotFoundException($"Could not find an action by the name of '{context.ActiveAction}'");
 
                 actionInfo ??= DefaultAction;
                 Debug.Assert(action is not null);
 
-                ConversationActionEndingKind ending;
                 try
                 {
-                    ending = await action.PerformActions(
+                    await action.PerformActions(
                         scope.ServiceProvider, 
                         store, 
                         context, 
@@ -328,20 +329,15 @@ public partial class ChatBotManager
                 catch(Exception exc)
                 {
                     var t = exceptionHandler?.Invoke(exc, client, scope.ServiceProvider);
-                    if (t is ValueTask<ConversationActionEndingKind?> task && await task is ConversationActionEndingKind end)
+                    if (t is ValueTask task)
                     {
+                        await task;
                         SinkLogMessageAction?.Invoke(3, "An exception was thrown while trying to perform an action", -12355522, exc, services);
-                        if (end == ConversationActionEndingKind.Repeat)
-                            continue;
-
                         break;
                     }
 
                     throw;
                 }
-
-                if (ending == ConversationActionEndingKind.Repeat)
-                    continue;
 
                 break;
             }
@@ -350,15 +346,18 @@ public partial class ChatBotManager
         {
             SinkLogMessageAction?.Invoke(3, "Could not find an action that was attempted to be performed", -1350155522, excp, services);
             var t = exceptionHandler?.Invoke(excp, client, scope.ServiceProvider);
-            if (t is ValueTask<ConversationActionEndingKind?> task)
+            if (t is ValueTask task)
                 await task;
             context.ResetState();
         }
         catch(Exception excp)
         {
             var t = exceptionHandler?.Invoke(excp, client, scope.ServiceProvider);
-            if (t is ValueTask<ConversationActionEndingKind?> task && await task is ConversationActionEndingKind end)
+            if (t is ValueTask task)
+            {
+                await task;
                 SinkLogMessageAction?.Invoke(4, "An exception was thrown while trying to perform an action", -1352155522, excp, services);
+            }
             else
                 throw;
         }

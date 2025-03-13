@@ -16,7 +16,9 @@ public sealed class PipelineHandlerCollection : IEnumerable<Type>
 
     private PipelineHandlerCollection()
     {
-        allHandlers = FrozenSet<Type>.Empty;
+        allHandlers = [];
+        MessageHandlers = [];
+        KeyboardHandlers = [];
     }
 
     public PipelineHandlerCollection(IEnumerable<Type> types, IServiceCollection services, string? actionName)
@@ -24,8 +26,10 @@ public sealed class PipelineHandlerCollection : IEnumerable<Type>
         HashSet<Type> messageHandlersBuffer = [];
         HashSet<Type> keyboardHandlersBuffer = [];
 
+        int handlerCount = 0;
         foreach (var type in types)
         {
+            handlerCount++;
             bool valid = false;
 
             if (type.IsAssignableTo(typeof(IChatBotPipelineMessageHandler)))
@@ -46,9 +50,9 @@ public sealed class PipelineHandlerCollection : IEnumerable<Type>
                 throw new ArgumentException($"The type included in the handlers list '{type.AssemblyQualifiedName}' is not a valid chatbot pipeline handler. It needs to implement at least one of the following interfaces: 'IChatBotPipelineMessageHandler', or 'IChatBotPipelineKeyboardHandler'", nameof(types));
         }
 
-        allHandlers = types.ToFrozenSet();
-        MessageHandlers = [.. messageHandlersBuffer];
-        KeyboardHandlers = [.. keyboardHandlersBuffer];
+        allHandlers = handlerCount is 0 ? [] : types.ToFrozenSet();
+        MessageHandlers = messageHandlersBuffer.Count is 0 ? [] : [.. messageHandlersBuffer];
+        KeyboardHandlers = keyboardHandlersBuffer.Count is 0 ? [] : [.. keyboardHandlersBuffer];
     }
 
     public ImmutableArray<Type> MessageHandlers { get; }

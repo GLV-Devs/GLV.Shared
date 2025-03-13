@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using GLV.Shared.Common;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,7 +23,7 @@ public class BackgroundTaskStoreSweeper(ILogger<BackgroundTaskStoreSweeper> logg
     {
         while (stoppingToken.IsCancellationRequested is false)
         {
-            await BackgroundTaskStore.Sweep(logger, stoppingToken);
+            await BackgroundTaskStore.Sweep(stoppingToken);
             await Task.Delay(1000, stoppingToken);
         }
     }

@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using GLV.Shared.ChatBot.Discord.DiscordUpdates;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -9,18 +10,33 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace GLV.Shared.ChatBot.Discord;
 
-public class DiscordChatBotClient(
-    string botId,
-    IDiscordClient client,
-    ChatBotManager manager,
-    CommandService commandService,
-    Func<DiscordUpdateContext, ChatBotManager, Task>? updateHandler = null
-) : IChatBotClient
+public abstract class DiscordChatBotClient : IChatBotClient
 {
+    internal DiscordChatBotClient(
+        string botId,
+        IDiscordClient client,
+        ChatBotManager manager,
+        CommandService commandService,
+        Func<DiscordUpdateContext, ChatBotManager, Task>? updateHandler = null
+    )
+    {
+        Manager = manager ?? throw new ArgumentNullException(nameof(manager));
+        BotClient = client ?? throw new ArgumentNullException(nameof(client));
+        CommandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
+        BotId = botId;
+        UpdateHandler = updateHandler;
+    }
+
+    protected Task SubmitUpdate(DiscordUpdateContext context)
+        => UpdateHandler is not null ? UpdateHandler.Invoke(context, Manager) : Manager.SubmitUpdate(context);
+
     protected virtual async Task BotClient_CommandUpdate(ICommandContext context, object[] args, IServiceProvider? services, CommandInfo commandInfo)
     {
-        var update = new DiscordCommandUpdateContext(this, context, context.PackDiscordGuildConversationId());
-        update.AddOrReplaceFeature(commandInfo);
+        var update = new DiscordCommandUpdateContext(this, context, commandInfo, context.PackDiscordConversationId())
+        {
+            JumpToActiveAction = commandInfo.Aliases[0],
+            JumpToActiveActionStep = 0
+        };
 
         if (UpdateHandler is not null)
             await UpdateHandler.Invoke(update, Manager);
@@ -28,26 +44,34 @@ public class DiscordChatBotClient(
             await Manager.SubmitUpdate(update);
     }
 
-    public ChatBotManager Manager { get; } = manager ?? throw new ArgumentNullException(nameof(manager));
-    public IDiscordClient BotClient { get; } = client ?? throw new ArgumentNullException(nameof(client));
-    public CommandService CommandService { get; } = commandService ?? throw new ArgumentNullException(nameof(commandService));
-    public string BotId { get; } = botId;
+    public ChatBotManager Manager { get; }
+    public IDiscordClient BotClient { get; }
+    public CommandService CommandService { get; }
+    public string BotId { get; }
     public object UnderlyingBotClientObject => BotClient;
-    public Func<DiscordUpdateContext, ChatBotManager, Task>? UpdateHandler { get; } = updateHandler;
+    public Func<DiscordUpdateContext, ChatBotManager, Task>? UpdateHandler { get; }
 
     public bool AllowReactionsInPlaceOfInlineKeyboard { get; init; } = false;
 
     [field: AllowNull]
-    public string BotHandle 
+    public string BotHandle
     {
         get => field ?? throw new InvalidOperationException("Cannot obtain the handle of this bot before it has been obtained via PrepareBot");
-        private set; 
+        private set;
     }
 
-    public Task PrepareBot()
+    private ulong? ___botId;
+    public ulong DiscordBotId
+    {
+        get => ___botId ?? throw new InvalidOperationException("Cannot obtain the handle of this bot before it has been obtained via PrepareBot");
+        private set => ___botId = value;
+    }
+
+    public virtual Task PrepareBot()
     {
         var me = BotClient.CurrentUser;
         BotHandle = me.Username!;
+        DiscordBotId = me.Id!;
         return Task.CompletedTask;
     }
 
@@ -92,8 +116,8 @@ public class DiscordChatBotClient(
 
     public async Task<long> SendMessage(Guid conversationId, string? text, Keyboard? kr, IEnumerable<MessageAttachment>? attachments, MessageOptions options = default)
     {
-        conversationId.UnpackDiscordGuildConversationId(out var guild, out var channel);
-        
+        conversationId.UnpackDiscordConversationId(out var channel);
+
         if (kr is Keyboard keyboard)
         {
             if (AllowReactionsInPlaceOfInlineKeyboard)
@@ -104,7 +128,7 @@ public class DiscordChatBotClient(
         else
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(text);
-            
+
             var ch = await BotClient.GetChannelAsync(channel)
                 ?? throw new InvalidOperationException($"Could not find a channel under id {channel} that this bot has access to");
 
@@ -136,7 +160,7 @@ public class DiscordChatBotClient(
 
     public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, MessageOptions options = default)
     {
-        conversationId.UnpackDiscordGuildConversationId(out var guild, out var channel);
+        conversationId.UnpackDiscordConversationId(out var channel);
 
         if (newKeyboard is Keyboard keyboard)
         {
@@ -161,7 +185,7 @@ public class DiscordChatBotClient(
 
     public async Task DeleteMessage(Guid conversationId, long messageId)
     {
-        conversationId.UnpackDiscordGuildConversationId(out var guild, out var channel);
+        conversationId.UnpackDiscordConversationId(out var channel);
 
         var ch = await BotClient.GetChannelAsync(channel)
             ?? throw new InvalidOperationException($"Could not find a channel under id {channel} that this bot has access to");
@@ -178,10 +202,12 @@ public class DiscordChatBotClient(
     }
 
     public bool IsReferringToBot(string text)
-        => text.Equals($"@{BotHandle}", StringComparison.OrdinalIgnoreCase);
+        => text.Equals($"@{BotHandle}", StringComparison.OrdinalIgnoreCase)
+        || text.Equals($"<@{DiscordBotId}>", StringComparison.OrdinalIgnoreCase);
 
     public bool ContainsReferenceToBot(string text)
-        => text.Contains($"@{BotHandle}", StringComparison.OrdinalIgnoreCase);
+        => text.Contains($"@{BotHandle}", StringComparison.OrdinalIgnoreCase)
+        || text.Contains($"<@{DiscordBotId}>", StringComparison.OrdinalIgnoreCase);
 
     public SupportedFeatures SupportedFeatures { get; } = new()
     {

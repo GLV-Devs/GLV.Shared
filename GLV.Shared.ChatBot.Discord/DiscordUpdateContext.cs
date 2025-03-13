@@ -1,36 +1,30 @@
-﻿using Discord.Commands;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace GLV.Shared.ChatBot.Discord;
 
-public enum DiscordUpdateKind
+public abstract class DiscordUpdateContext : UpdateContext
 {
-    Unknown = 0,
-    CommandUpdate = 1
-}
+    internal DiscordUpdateContext(
+        IChatBotClient client,
+        Guid conversationId,
+        DiscordUpdateKind updateKind,
+        bool isHandledByBotClient = false
+    ) : base(client, conversationId, DiscordPlatform)
+    {
+        IsHandledByBotClient = isHandledByBotClient;
+        UpdateKind = updateKind;
+    }
 
-public class DiscordCommandUpdateContext(
-    IChatBotClient client,
-    ICommandContext commandContext,
-    Guid conversationId,
-    bool isHandledByBotClient = false
-) : DiscordUpdateContext(client, DiscordUpdateKind.CommandUpdate, conversationId, isHandledByBotClient)
-{
-    public ICommandContext CommandContext { get; } = commandContext ?? throw new ArgumentNullException(nameof(commandContext));
-    public override Message? Message
-        => new(CommandContext.Message.Content, (long)CommandContext.Message.Id, CommandContext.Message.Attachments.Count > 0);
-}
-
-public abstract class DiscordUpdateContext(
-    IChatBotClient client,
-    DiscordUpdateKind updateKind,
-    Guid conversationId,
-    bool isHandledByBotClient = false
-    ) : UpdateContext(client, conversationId, DiscordPlatform)
-{
-    public DiscordUpdateKind UpdateKind { get; } = updateKind;
-
-    public override bool IsHandledByBotClient => isHandledByBotClient;
+    public DiscordUpdateKind UpdateKind { get; }
 
     public override KeyboardResponse? KeyboardResponse => null;
+}
+
+public enum DiscordUpdateKind
+{
+    Command = 0,
+    ChannelUpdated = 1,
+    ChannelDeleted = 2,
+    ChannelCreated = 3,
+    MessageReceived = 4
 }

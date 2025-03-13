@@ -33,7 +33,7 @@ public abstract class UpdateContext(IChatBotClient client, Guid conversationId, 
 
     internal PipelineContext? pipelineContext;
 
-    public virtual bool IsHandledByBotClient { get; }
+    public virtual bool IsHandledByBotClient { get; set; }
 
     public string Platform { get; } = platform;
     public Guid ConversationId { get; } = conversationId;
@@ -75,6 +75,9 @@ public abstract class UpdateContext(IChatBotClient client, Guid conversationId, 
 
     public T GetRequiredFeature<T>() where T : notnull
         => Features?.TryGetValue(typeof(T), out var obj) is true ? (T)obj : throw new InvalidOperationException($"Could not locate a feature matching the type {typeof(T)}");
+
+    public string? JumpToActiveAction { get; set; }
+    public long? JumpToActiveActionStep { get; set; }
 
     public abstract KeyboardResponse? KeyboardResponse { get; }
     public abstract Message? Message { get; }

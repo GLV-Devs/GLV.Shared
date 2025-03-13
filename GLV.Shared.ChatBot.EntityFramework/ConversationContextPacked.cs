@@ -90,8 +90,10 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
         var json = JsonSerializer.Serialize(context, contextType);
         RegisterType(contextType);
 
-        int rows = await conn.QuerySingleAsync<int>($"select count(Id) from {tabname} where conversationId = {convoId}") > 0
-            ? await conn.ExecuteAsync( // it exists
+        int rows;
+        if (await db.Set<ConversationContextPacked>().AnyAsync())
+        {
+            rows = await conn.ExecuteAsync( // it exists
                 $""""
                 update {tabname}
                 set 
@@ -100,10 +102,13 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
                     Encoding = 'json',
                     AssemblyQualifiedContextTypeName = '{contextType.AssemblyQualifiedName}',
                     JsonData = '{json}'
-                where conversationId = {convoId};
+                where conversationId = '{convoId}';
                 """"
-            )
-            : await conn.ExecuteAsync( // it does not exist
+            );
+        }
+        else
+        {
+            rows = await conn.ExecuteAsync( // it does not exist
                 $""""
                 insert into {tabname} 
                 (
@@ -125,6 +130,7 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
                 );
                 """"
             );
+        }
 
         Debug.Assert(rows > 0);
     }

@@ -1,7 +1,9 @@
 ﻿using Dapper;
+using GLV.Shared.ChatBot.EntityFramework.TypeHandlers;
 using GLV.Shared.EntityFramework;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Data;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using static GLV.Shared.ChatBot.IConversationStore;
@@ -24,6 +26,14 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
     );
 
     private readonly ConversationStoreKeyChain KeyChain = new();
+
+    static EntityFrameworkConversationStore()
+    {
+        SqlMapper.AddTypeHandler(new SqlGuidTypeHandler());
+        SqlMapper.AddTypeHandler(new SqlNullableGuidTypeHandler());
+        SqlMapper.RemoveTypeMap(typeof(Guid));
+        SqlMapper.RemoveTypeMap(typeof(Guid?));
+    }
 
     public bool AllowDeletesToAffectMultipleRows { get; init; } = false;
 
@@ -50,7 +60,9 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
         {
             var cc = (await context.Database
                                    .GetDbConnection()
-                                   .QueryFirstAsync<TContextModel>($"select * from {GetContextModelTableName()} where ConversationId = '{conversationId}'"));
+                                   .QueryFirstOrDefaultAsync<TContextModel>(
+                                        $"select * from {GetContextModelTableName()} where ConversationId = '{conversationId}'")
+                                   );
 
             //await context.Set<TContextModel>().FirstOrDefaultAsync(x => x.ConversationId == conversationId);
             if (cc is null)

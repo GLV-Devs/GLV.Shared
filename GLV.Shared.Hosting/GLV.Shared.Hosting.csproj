@@ -26,4 +26,8 @@
 		<PackageReference Include="Serilog.Extensions.Logging" Version="9.0.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\GLV.Shared.Common\GLV.Shared.Common.csproj" />
+	</ItemGroup>
+
 </Project>

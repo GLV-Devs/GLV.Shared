@@ -139,7 +139,7 @@ public abstract class ConversationActionBase
         return false;
     }
 
-    internal async Task<ConversationActionEndingKind> PerformActions(
+    internal async Task PerformActions(
         IServiceProvider services, 
         IConversationStore store, 
         ConversationContext context, 
@@ -168,7 +168,7 @@ public abstract class ConversationActionBase
         Pipeline = pipeline;
         try
         {
-            return await PerformAsync(update);
+            await PerformAsync(update);
         }
         finally
         {
@@ -182,5 +182,5 @@ public abstract class ConversationActionBase
         }
     }
 
-    protected abstract Task<ConversationActionEndingKind> PerformAsync(UpdateContext update);
+    protected abstract Task PerformAsync(UpdateContext update);
 }

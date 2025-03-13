@@ -35,10 +35,20 @@ public class TelegramChatBotClient : IChatBotClient
         BotClient.OnUpdate += BotClient_OnUpdate;
     }
 
-    private Task BotClient_OnUpdate(WTelegram.Types.Update arg)
-        => UpdateHandler is not null
-            ? UpdateHandler.Invoke(arg, Manager)
-            : Manager.SubmitUpdate(PrepareUpdateContext(arg));
+    private async Task BotClient_OnUpdate(WTelegram.Types.Update arg)
+    {
+        if (UpdateHandler is not null)
+            await UpdateHandler.Invoke(arg, Manager);
+        else
+        {
+            var context = PrepareUpdateContext(arg);
+            var action = await Manager.CheckIfCommand(context);
+            if (action is not null)
+                context.JumpToActiveAction = action.ActionName;
+
+            await Manager.SubmitUpdate(context);
+        }
+    }
 
     protected virtual TelegramUpdateContext PrepareUpdateContext(WTelegram.Types.Update update) 
         => update.Type is UpdateType.MyChatMember
