@@ -289,6 +289,21 @@ public class TelegramChatBotClient : IChatBotClient
     public bool ContainsReferenceToBot(string text)
         => text.Contains($"@{BotHandle}", StringComparison.OrdinalIgnoreCase);
 
+    public bool TryGetTextAfterReferenceToBot(string text, out ReadOnlySpan<char> rest)
+    {
+        var testStr = $"@{BotHandle}";
+        int indx = text.LastIndexOf(testStr, StringComparison.OrdinalIgnoreCase);
+
+        if (indx is -1)
+        {
+            rest = default;
+            return false;
+        }
+
+        rest = text.AsSpan()[(indx + (testStr.Length - 1))..];
+        return true;
+    }
+
     public SupportedFeatures SupportedFeatures => field ??= new()
     {
         InlineKeyboards = true,

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Text;
 
 namespace GLV.Shared.ChatBot;
 
@@ -276,6 +277,31 @@ public partial class ChatBotManager
                 return fetchResult.Context;
             }
         }
+    }
+
+    public Func<FrozenDictionary<string, ConversationActionInformation>, string>? HelpStringComposer { get; set; }
+
+    public string HelpString => field ??= ComposeHelpString(Commands);
+
+    protected virtual string ComposeHelpString(FrozenDictionary<string, ConversationActionInformation> dict)
+    {
+        if (HelpStringComposer is Func<FrozenDictionary<string, ConversationActionInformation>, string> composer)
+            return composer.Invoke(dict);
+
+        StringBuilder sb = new(100 * dict.Count);
+        sb.AppendLine("The commands available to me are: \n");
+        foreach (var (k, v) in dict)
+        {
+            sb.Append("\t - ").Append(k);
+            if (string.IsNullOrWhiteSpace(v.CommandDescription) is false)
+                sb.Append(" : ").Append(v.CommandDescription);
+
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("\nIf you want me to send a picture of Ari, just send 'Ari' to the chat! (without the quotes)");
+
+        return sb.ToString();
     }
 
     public virtual async Task SubmitUpdate(UpdateContext update, ConversationContext? context = null)

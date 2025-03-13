@@ -209,6 +209,27 @@ public abstract class DiscordChatBotClient : IChatBotClient
         => text.Contains($"@{BotHandle}", StringComparison.OrdinalIgnoreCase)
         || text.Contains($"<@{DiscordBotId}>", StringComparison.OrdinalIgnoreCase);
 
+    public bool TryGetTextAfterReferenceToBot(string text, out ReadOnlySpan<char> rest)
+    {
+        var testStr = $"@{BotHandle}";
+        int indx = text.LastIndexOf(testStr, StringComparison.OrdinalIgnoreCase);
+
+        if (indx is -1)
+        {
+            testStr = $"<@{DiscordBotId}>";
+            indx = text.LastIndexOf(testStr, StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (indx is -1)
+        {
+            rest = default;
+            return false;
+        }
+
+        rest = text.AsSpan()[(indx + (testStr.Length - 1))..];
+        return true;
+    }
+
     public SupportedFeatures SupportedFeatures { get; } = new()
     {
         AudioMessageAttachment = true,

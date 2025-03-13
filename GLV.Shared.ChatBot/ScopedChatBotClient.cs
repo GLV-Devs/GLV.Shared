@@ -52,5 +52,8 @@ public class ScopedChatBotClient(Guid scopedConversation, IChatBotClient client)
     public bool ContainsReferenceToBot(string text)
         => Client.ContainsReferenceToBot(text);
 
+    public bool TryGetTextAfterReferenceToBot(string text, out ReadOnlySpan<char> rest)
+        => Client.TryGetTextAfterReferenceToBot(text, out rest);
+
     public SupportedFeatures SupportedFeatures => Client.SupportedFeatures;
 }

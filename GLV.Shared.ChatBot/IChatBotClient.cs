@@ -55,4 +55,5 @@ public interface IChatBotClient
     public Task PrepareBot();
     public bool IsReferringToBot(string text);
     public bool ContainsReferenceToBot(string text);
+    public bool TryGetTextAfterReferenceToBot(string text, out ReadOnlySpan<char> rest);
 }
