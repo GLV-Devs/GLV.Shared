@@ -22,7 +22,23 @@ public class TelegramUpdateContext(
     public override Message? Message { get; }
         = update.Message is null
         ? null
-        : new Message(update.Message.Text, update.Message.Id, update.Message.Type != MessageType.Text);
+        : new Message(
+            update.Message.Text, 
+            update.Message.Id,
+            update.Message.ReplyToMessage?.Id,
+            update.Message.From is User u 
+            ? new UserInfo(
+                u.Username,
+                string.IsNullOrWhiteSpace(u.FirstName) is false
+                    ? string.IsNullOrWhiteSpace(u.LastName) is false
+                        ? $"{u.FirstName} {u.LastName}"
+                        : u.FirstName
+                    : null,
+                u.PackTelegramUserId()
+            )
+            : null,
+            update.Message.Type != MessageType.Text
+        );
 
     public override KeyboardResponse? KeyboardResponse { get; }
         = update.CallbackQuery is null

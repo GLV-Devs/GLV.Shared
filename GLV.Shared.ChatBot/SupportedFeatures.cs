@@ -16,4 +16,6 @@ public sealed class SupportedFeatures
     public required bool SendWithoutNotification { get; init; }
     public required bool ProtectMediaContent { get; init; }
     public required bool HtmlText { get; init; }
+    public required bool UserInfoInMessage { get; init; }
+    public required bool ResponseMessages { get; init; }
 }

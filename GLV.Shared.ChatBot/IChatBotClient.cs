@@ -7,8 +7,9 @@ public interface IScopedChatBotClient : IChatBotClient
 {
     public Guid ScopedConversation { get; }
 
-    public Task<long> SendMessage(string? text, Keyboard? keyboard = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default)
-        => SendMessage(ScopedConversation, text, keyboard, attachments, options);
+    public Task<long> SendMessage(string? text, Keyboard? keyboard = null,
+        long? respondingToMessageId = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default)
+        => SendMessage(ScopedConversation, text, keyboard, respondingToMessageId, attachments, options);
 
     public Task AnswerKeyboardResponse(KeyboardResponse keyboardResponse, string? alertMessage, bool showAlert = false, int cacheTime = 0)
         => AnswerKeyboardResponse(ScopedConversation, keyboardResponse, alertMessage, showAlert, cacheTime);
@@ -34,7 +35,8 @@ public interface IChatBotClient
     public Task SetBotCommands(IEnumerable<ConversationActionInformation> commands);
     public Task SetBotDescription(string name, string? shortDescription = null, string? description = null, CultureInfo? culture = null);
     public Task AnswerKeyboardResponse(Guid conversationId, KeyboardResponse keyboardResponse, string? alertMessage, bool showAlert = false, int cacheTime = 0);
-    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default);
+    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard = null,
+        long? respondingToMessageId = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default);
     public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard = null, MessageOptions options = default);
     public Task DeleteMessage(Guid conversationId, long messageId);
 

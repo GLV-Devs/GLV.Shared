@@ -139,7 +139,8 @@ public class TelegramChatBotClient : IChatBotClient
     public async Task<long> SendMessage(
         Guid conversationId, 
         string? text, 
-        Keyboard? kr, 
+        Keyboard? kr,
+        long? respondingToMessageId = null,
         IEnumerable<MessageAttachment>? attachments = null,
         MessageOptions options = default
     )
@@ -153,6 +154,11 @@ public class TelegramChatBotClient : IChatBotClient
             markup = ParseKeyboard(keyboard);
         else
             ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+        var reply
+            = respondingToMessageId is long rtmi
+            ? new ReplyParameters() { MessageId = (int)rtmi }
+            : null;
 
         if (attachments is not null && attachments.Any())
         {
@@ -174,6 +180,7 @@ public class TelegramChatBotClient : IChatBotClient
                                                         id,
                                                         new InputFileStream(attachment.GetContent(), attachment.AttachmentTitle),
                                                         text ?? " ",
+                                                        replyParameters: reply,
                                                         parseMode: options.Html ? ParseMode.Html : ParseMode.None,
                                                         replyMarkup: markup,
                                                         protectContent: attachment.ProtectContent,
@@ -192,6 +199,7 @@ public class TelegramChatBotClient : IChatBotClient
                                                         id,
                                                         new InputFileStream(attachment.GetContent(), attachment.AttachmentTitle),
                                                         text ?? " ",
+                                                        replyParameters: reply,
                                                         parseMode: options.Html ? ParseMode.Html : ParseMode.None,
                                                         hasSpoiler: attachment.IsSpoiler,
                                                         replyMarkup: markup,
@@ -202,6 +210,7 @@ public class TelegramChatBotClient : IChatBotClient
                                                         id,
                                                         new InputFileStream(attachment.GetContent(), attachment.AttachmentTitle),
                                                         text ?? " ",
+                                                        replyParameters: reply,
                                                         parseMode: options.Html ? ParseMode.Html : ParseMode.None,
                                                         replyMarkup: markup,
                                                         protectContent: attachment.ProtectContent,
@@ -221,6 +230,7 @@ public class TelegramChatBotClient : IChatBotClient
             msg = await BotClient.SendMessage(
                 id,
                 text ?? " ",
+                replyParameters: reply,
                 parseMode: options.Html ? ParseMode.Html : ParseMode.None,
                 replyMarkup: markup,
                 disableNotification: options.SendWithoutNotification
@@ -319,6 +329,8 @@ public class TelegramChatBotClient : IChatBotClient
         AttachmentDescriptions = false,
         SendWithoutNotification = true,
         ProtectMediaContent = true,
-        HtmlText = true
+        HtmlText = true,
+        ResponseMessages = true,
+        UserInfoInMessage = true
     };
 }

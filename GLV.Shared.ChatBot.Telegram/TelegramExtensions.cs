@@ -8,8 +8,14 @@ namespace GLV.Shared.ChatBot.Telegram;
 
 public static class TelegramExtensions
 {
+    public static Guid PackTelegramUserId(this User user)
+        => MemoryMarshal.Cast<long, Guid>([0, user.Id])[0];
+
     public static long UnpackTelegramConversationId(this Guid conversationId)
         => MemoryMarshal.Cast<Guid, long>(MemoryMarshal.CreateSpan(ref conversationId, 1))[0];
+
+    public static long UnpackTelegramUserId(this Guid userId)
+        => MemoryMarshal.Cast<Guid, long>(MemoryMarshal.CreateSpan(ref userId, 1))[1];
 
     public static string UnpackTelegramPollTruncatedMD5HashId(this Guid conversationId)
         => MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref conversationId, 1))[..sizeof(long)].ToHexViaLookup32();

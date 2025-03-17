@@ -131,8 +131,6 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
                 """"
             );
         }
-
-        Debug.Assert(rows > 0);
     }
 
     private static string GetContextModelTableName(DbContext context)

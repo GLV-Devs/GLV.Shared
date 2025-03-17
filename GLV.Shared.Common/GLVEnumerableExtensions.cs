@@ -2,6 +2,15 @@
 
 namespace GLV.Shared.Common;
 
+public static class FileExtensions
+{
+    public static long GetFileLength(string path)
+    {
+        using var f = File.OpenRead(path);
+        return f.Length;
+    }
+}
+
 public static class GLVEnumerableExtensions
 {
     public static T GetRandomItem<T>(this IEnumerable<T> collection, Random? rand)

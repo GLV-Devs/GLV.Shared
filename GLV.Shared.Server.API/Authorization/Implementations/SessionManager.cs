@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using GLV.Shared.Common;
 using GLV.Shared.Hosting;
 using GLV.Shared.Hosting.Workers;
 using Microsoft.AspNetCore.Authentication;
@@ -20,7 +21,7 @@ public class SessionManager : ISessionManager
     public SessionManager()
     {
 
-        BackgroundTaskStore.Add(SessionCleanup, TimeSpan.FromMinutes(20));
+        BackgroundTaskStore.Add(SessionCleanup());
         var klen = GetKeyLength();
         if (klen < 3)
             throw new InvalidOperationException($"KeyLength cannot be less than 3. Value is {klen}");
@@ -38,7 +39,7 @@ public class SessionManager : ISessionManager
 
     public event SessionDeleted? OnSessionDeleted;
 
-    private Task SessionCleanup(CancellationToken ct) => Task.Run(() =>
+    private Task SessionCleanup() => Task.Run(async () =>
     {
         foreach (var (key, ticket) in SessionStore.ToArray())
         {
@@ -49,8 +50,9 @@ public class SessionManager : ISessionManager
             }
         }
 
-        BackgroundTaskStore.Add(SessionCleanup, TimeSpan.FromMinutes(10));
-    }, ct);
+        await Task.Delay(TimeSpan.FromMinutes(10));
+        BackgroundTaskStore.Add(SessionCleanup());
+    });
 
     public bool TryGenerateNewKey(Span<char> output, out int charsWritten)
     {

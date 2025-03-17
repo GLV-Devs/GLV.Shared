@@ -114,7 +114,7 @@ public abstract class DiscordChatBotClient : IChatBotClient
     public Task SetBotDescription(string name, string? shortDescription = null, string? description = null, CultureInfo? culture = null)
         => Task.CompletedTask;
 
-    public async Task<long> SendMessage(Guid conversationId, string? text, Keyboard? kr, IEnumerable<MessageAttachment>? attachments, MessageOptions options = default)
+    public async Task<long> SendMessage(Guid conversationId, string? text, Keyboard? kr, long? replyToMessageId, IEnumerable<MessageAttachment>? attachments, MessageOptions options = default)
     {
         conversationId.UnpackDiscordConversationId(out var channel);
 
@@ -127,6 +127,12 @@ public abstract class DiscordChatBotClient : IChatBotClient
         }
         else
         {
+            var reply
+                = replyToMessageId is long rtmi
+                ? new MessageReference((ulong)rtmi)
+                : null;
+            var flags = options.SendWithoutNotification ? MessageFlags.SuppressNotification : 0;
+
             ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
             var ch = await BotClient.GetChannelAsync(channel)
@@ -144,8 +150,8 @@ public abstract class DiscordChatBotClient : IChatBotClient
                         a.IsSpoiler,
                         a.IsThumbnail,
                         a.Duration
-                    )), text, flags: options.SendWithoutNotification ? MessageFlags.SuppressNotification : 0)).Id
-                    : (long)(await messageChannel.SendMessageAsync(text)).Id;
+                    )), text, messageReference: reply, flags: flags)).Id
+                    : (long)(await messageChannel.SendMessageAsync(text, messageReference: reply, flags: flags)).Id;
             }
         }
     }
@@ -245,6 +251,8 @@ public abstract class DiscordChatBotClient : IChatBotClient
         AttachmentDescriptions = true,
         HtmlText = false,
         ProtectMediaContent = false,
-        SendWithoutNotification = true
+        SendWithoutNotification = true,
+        ResponseMessages = true,
+        UserInfoInMessage = true
     };
 }
