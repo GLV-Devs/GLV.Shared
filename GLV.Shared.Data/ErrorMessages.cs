@@ -127,6 +127,13 @@ public static partial class ErrorMessages
             null
         );
 
+    public static ErrorMessage NoContentLength()
+        => new(
+            "No se proveyó un encabezado de Content-Length en la petición",
+            nameof(NoContentLength),
+            null
+        );
+
     public static ErrorMessage ActionDisallowed(DisallowableAction? action = null, DisallowableActionTarget? target = null, string? targetName = null)
         => new(
             action is null 

@@ -9,7 +9,6 @@ using System.Text.RegularExpressions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using TL;
 using WTelegram;
 using WTelegram.Types;
 using BotCommand = Telegram.Bot.Types.BotCommand;
@@ -55,6 +54,7 @@ public class TelegramChatBotClient : IChatBotClient
             ? new TelegramUpdateContext(update, this, ConversationIdFactory?.Invoke(update, this), true)
             : new TelegramUpdateContext(update, this, ConversationIdFactory?.Invoke(update, this));
 
+    public string Platform => UpdateContext.TelegramPlatform;
     public ChatBotManager Manager { get; }
     public WTelegram.Bot BotClient { get; }
     public string BotId { get; }
@@ -98,7 +98,7 @@ public class TelegramChatBotClient : IChatBotClient
                 Description = "Cancels the current action and resets the conversation"
             }));
         }
-        catch(RpcException excp)
+        catch(TL.RpcException excp)
         {
             if (excp.Message.Contains("FLOOD", StringComparison.OrdinalIgnoreCase))
                 return Task.CompletedTask;
@@ -128,7 +128,7 @@ public class TelegramChatBotClient : IChatBotClient
         {
             await BotClient.SetMyInfo(name ?? BotId, shortDescription, description, (culture ?? CultureInfo.CurrentCulture).TwoLetterISOLanguageName);
         }
-        catch (RpcException excp)
+        catch (TL.RpcException excp)
         {
             if (excp.Message.Contains("FLOOD", StringComparison.OrdinalIgnoreCase))
                 return;
@@ -148,7 +148,7 @@ public class TelegramChatBotClient : IChatBotClient
         var id = conversationId.UnpackTelegramConversationId();
         WTelegram.Types.Message msg;
 
-        IReplyMarkup? markup = null;
+        ReplyMarkup? markup = null;
 
         if (kr is Keyboard keyboard)
             markup = ParseKeyboard(keyboard);
@@ -331,6 +331,28 @@ public class TelegramChatBotClient : IChatBotClient
         ProtectMediaContent = true,
         HtmlText = true,
         ResponseMessages = true,
-        UserInfoInMessage = true
+        UserInfoInMessage = true,
+        DisciplinaryActionReasons = false
     };
+
+    public Task KickUser(Guid conversationId, long userId, string? reason = null) 
+        => BotClient.UnbanChatMember(conversationId.UnpackTelegramConversationId(), userId);
+
+    public Task BanUser(Guid conversationId, long userId, int pruneDays = 0, string? reason = null)
+        => BotClient.BanChatMember(conversationId.UnpackTelegramConversationId(), userId, default, true);
+
+    public Task MuteUser(Guid conversationId, long userId, string? reason = null)
+        => BotClient.RestrictChatMember(conversationId.UnpackTelegramConversationId(), userId, new ChatPermissions()
+        {
+            CanSendMessages = false
+        });
+
+    public Task UnmuteUser(Guid conversationId, long userId, string? reason = null)
+        => BotClient.RestrictChatMember(conversationId.UnpackTelegramConversationId(), userId, new ChatPermissions()
+        {
+            CanSendMessages = true
+        });
+
+    public Task UnbanUser(Guid conversationId, long userId, string? reason = null)
+        => BotClient.UnbanChatMember(conversationId.UnpackTelegramConversationId(), userId, true);
 }

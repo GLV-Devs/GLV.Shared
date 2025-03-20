@@ -56,4 +56,21 @@ public class ScopedChatBotClient(Guid scopedConversation, IChatBotClient client)
         => Client.TryGetTextAfterReferenceToBot(text, out rest);
 
     public SupportedFeatures SupportedFeatures => Client.SupportedFeatures;
+
+    public string Platform => Client.Platform;
+
+    public Task KickUser(Guid conversationId, long userId, string? reason = null)
+        => Client.KickUser(conversationId, userId, reason);
+
+    public Task BanUser(Guid conversationId, long userId, int prune = 0, string? reason = null)
+        => Client.BanUser(conversationId, userId, prune, reason);
+
+    public Task MuteUser(Guid conversationId, long userId, string? reason = null)
+        => Client.MuteUser(conversationId, userId, reason);
+
+    public Task UnmuteUser(Guid conversationId, long userId, string? reason = null)
+        => Client.UnmuteUser(conversationId, userId, reason);
+
+    public Task UnbanUser(Guid conversationId, long userId, string? reason = null)
+        => Client.UnbanUser(conversationId, userId, reason);
 }

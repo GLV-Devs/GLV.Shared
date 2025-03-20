@@ -1,11 +1,13 @@
-﻿namespace GLV.Shared.Server.API.Controllers;
+﻿using GLV.Shared.DataTransfer;
+
+namespace GLV.Shared.Server.API.Controllers;
 
 public static class AsyncResultDataExtensions
 {
-    public static object CreateServerResponse(this AsyncResultData data, string traceIdentifier)
+    public static IServerResponse CreateServerResponse(this AsyncResultData data, string traceIdentifier)
         => BuildServerAsyncResponse(data, traceIdentifier);
 
-    private sealed class ServerAsyncResponse<T>(string? dataType, string traceId, IAsyncEnumerable<T>? data)
+    private sealed class ServerAsyncResponse<T>(string? dataType, string traceId, IAsyncEnumerable<T>? data) : IServerResponse
     {
         public string? DataType => dataType;
 
@@ -20,7 +22,7 @@ public static class AsyncResultDataExtensions
     [ThreadStatic]
     private static object[]? ServerAsyncResponseConstructorParametersBuffer;
 
-    private static object BuildServerAsyncResponse(AsyncResultData data, string traceId)
+    private static IServerResponse BuildServerAsyncResponse(AsyncResultData data, string traceId)
     {
         var typeArgs = ServerAsyncResponseGenericTypeBuffer ??= [null!];
         typeArgs[0] = data.AsyncEnumerableType;
@@ -32,6 +34,6 @@ public static class AsyncResultDataExtensions
 
         var inst = Activator.CreateInstance(typeof(ServerAsyncResponse<>).MakeGenericType(typeArgs), ctorParams)!;
         Array.Clear(ctorParams);
-        return inst;
+        return (IServerResponse)inst;
     }
 }

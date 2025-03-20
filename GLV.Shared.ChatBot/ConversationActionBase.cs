@@ -101,7 +101,7 @@ public abstract class ConversationActionBase
     private PipelineHandlerCollection? Pipeline;
 
     public void SinkLogMessage(int logLevel, string message, int eventId, Exception? exception)
-        => ChatBotManager.SinkLogMessage(logLevel, message, eventId, exception, Services);
+        => ChatBotManager.SinkLogMessage(logLevel, message, eventId, Update.Platform, Bot.BotId, exception, Services);
 
     public async Task<bool> ExecuteActionPipeline(bool excludeGlobalHandlers = false)
     {

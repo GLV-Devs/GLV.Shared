@@ -18,4 +18,5 @@ public sealed class SupportedFeatures
     public required bool HtmlText { get; init; }
     public required bool UserInfoInMessage { get; init; }
     public required bool ResponseMessages { get; init; }
+    public required bool DisciplinaryActionReasons { get; init; }
 }

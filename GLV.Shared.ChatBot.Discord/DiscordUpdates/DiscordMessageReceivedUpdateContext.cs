@@ -7,7 +7,25 @@ public class DiscordMessageReceivedUpdateContext : DiscordUpdateContext
     public IMessage MessageObject { get; }
 
     public override Message? Message
-        => new(MessageObject.Content, (long)MessageObject.Id, MessageObject.Attachments.Count > 0);
+    {
+        get
+        {
+            var refMessage = MessageObject.Reference.MessageId;
+            long? refmsid = refMessage.IsSpecified ? (long)refMessage.Value : null;
+
+            return new(
+                MessageObject.Content, 
+                (long)MessageObject.Id, 
+                refmsid, 
+                new UserInfo(
+                    MessageObject.Author.Username,
+                    MessageObject.Author.GlobalName,
+                    MessageObject.Author.PackDiscordUserId()
+                ), 
+                MessageObject.Attachments.Count > 0
+            );
+        }
+    }
 
     internal DiscordMessageReceivedUpdateContext(
         IChatBotClient client,

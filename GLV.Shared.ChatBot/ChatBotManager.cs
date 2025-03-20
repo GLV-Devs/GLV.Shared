@@ -4,6 +4,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace GLV.Shared.ChatBot;
@@ -15,7 +16,9 @@ public partial class ChatBotManager
     public delegate void SinkLogMessageHandler(
         int logLevel, 
         string message, 
-        int eventId, 
+        int eventId,
+        string? platform,
+        string? botId,
         Exception? exception,
         IServiceProvider services
     );
@@ -138,10 +141,12 @@ public partial class ChatBotManager
         int logLevel,
         string message,
         int eventId,
+        string? platform,
+        string? botId,
         Exception? exception,
         IServiceProvider? services = null
     )
-        => SinkLogMessageAction?.Invoke(logLevel, message, eventId, exception, services ?? ChatBotServices);
+        => SinkLogMessageAction?.Invoke(logLevel, message, eventId, platform, botId, exception, services ?? ChatBotServices);
 
     public ConversationActionInformation DefaultAction { get; }
 
@@ -281,6 +286,7 @@ public partial class ChatBotManager
 
     public Func<FrozenDictionary<string, ConversationActionInformation>, string>? HelpStringComposer { get; set; }
 
+    [field: AllowNull]
     public string HelpString => field ??= ComposeHelpString(Commands);
 
     protected virtual string ComposeHelpString(FrozenDictionary<string, ConversationActionInformation> dict)
@@ -358,7 +364,7 @@ public partial class ChatBotManager
                     if (t is ValueTask task)
                     {
                         await task;
-                        SinkLogMessageAction?.Invoke(3, "An exception was thrown while trying to perform an action", -12355522, exc, services);
+                        SinkLogMessageAction?.Invoke(3, "An exception was thrown while trying to perform an action", -12355522, null, null, exc, services);
                         break;
                     }
 
@@ -370,7 +376,7 @@ public partial class ChatBotManager
         }
         catch(ChatBotActionNotFoundException excp)
         {
-            SinkLogMessageAction?.Invoke(3, "Could not find an action that was attempted to be performed", -1350155522, excp, services);
+            SinkLogMessageAction?.Invoke(3, "Could not find an action that was attempted to be performed", -1350155522, null, null, excp, services);
             var t = exceptionHandler?.Invoke(excp, client, scope.ServiceProvider);
             if (t is ValueTask task)
                 await task;
@@ -382,7 +388,7 @@ public partial class ChatBotManager
             if (t is ValueTask task)
             {
                 await task;
-                SinkLogMessageAction?.Invoke(4, "An exception was thrown while trying to perform an action", -1352155522, excp, services);
+                SinkLogMessageAction?.Invoke(4, "An exception was thrown while trying to perform an action", -1352155522, null, null, excp, services);
             }
             else
                 throw;
@@ -395,7 +401,7 @@ public partial class ChatBotManager
             }
             catch(Exception e)
             {
-                SinkLogMessageAction?.Invoke(4, "An unexpected error ocurred while trying to save the context", -232433452, e, services);
+                SinkLogMessageAction?.Invoke(4, "An unexpected error ocurred while trying to save the context", -232433452, null, null, e, services);
             }
         }
     }

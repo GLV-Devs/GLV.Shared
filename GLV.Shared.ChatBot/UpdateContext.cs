@@ -27,9 +27,9 @@ public abstract class UpdateContext(IChatBotClient client, Guid conversationId, 
 {
     private Dictionary<Type, object>? Features;
 
-    public const string TelegramPlatform = "telegram-bot";
+    public const string TelegramPlatform = "wtelegram-bot";
     public const string WhatsAppPlatform = "whatsapp-bot";
-    public const string DiscordPlatform = "discord-dotnet-bot";
+    public const string DiscordPlatform = "discord.net-bot";
     public const string TwitterPlatform = "twitter-bot";
 
     internal PipelineContext? pipelineContext;

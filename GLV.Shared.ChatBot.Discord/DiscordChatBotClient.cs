@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Threading.Channels;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace GLV.Shared.ChatBot.Discord;
@@ -44,6 +45,7 @@ public abstract class DiscordChatBotClient : IChatBotClient
             await Manager.SubmitUpdate(update);
     }
 
+    public string Platform { get; } = UpdateContext.DiscordPlatform;
     public ChatBotManager Manager { get; }
     public IDiscordClient BotClient { get; }
     public CommandService CommandService { get; }
@@ -116,7 +118,7 @@ public abstract class DiscordChatBotClient : IChatBotClient
 
     public async Task<long> SendMessage(Guid conversationId, string? text, Keyboard? kr, long? replyToMessageId, IEnumerable<MessageAttachment>? attachments, MessageOptions options = default)
     {
-        conversationId.UnpackDiscordConversationId(out var channel);
+        conversationId.UnpackDiscordConversationId(out var guild, out var channel);
 
         if (kr is Keyboard keyboard)
         {
@@ -166,7 +168,7 @@ public abstract class DiscordChatBotClient : IChatBotClient
 
     public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, MessageOptions options = default)
     {
-        conversationId.UnpackDiscordConversationId(out var channel);
+        conversationId.UnpackDiscordConversationId(out var guild, out var channel);
 
         if (newKeyboard is Keyboard keyboard)
         {
@@ -191,7 +193,7 @@ public abstract class DiscordChatBotClient : IChatBotClient
 
     public async Task DeleteMessage(Guid conversationId, long messageId)
     {
-        conversationId.UnpackDiscordConversationId(out var channel);
+        conversationId.UnpackDiscordConversationId(out var guild, out var channel);
 
         var ch = await BotClient.GetChannelAsync(channel)
             ?? throw new InvalidOperationException($"Could not find a channel under id {channel} that this bot has access to");
@@ -253,6 +255,55 @@ public abstract class DiscordChatBotClient : IChatBotClient
         ProtectMediaContent = false,
         SendWithoutNotification = true,
         ResponseMessages = true,
-        UserInfoInMessage = true
+        UserInfoInMessage = true,
+        DisciplinaryActionReasons = true
     };
+
+    public async Task KickUser(Guid conversationId, long userId, string? reason = null)
+    {
+        conversationId.UnpackDiscordConversationId(out var guildId, out _);
+        var guild = await BotClient.GetGuildAsync(guildId);
+        var user = await guild.GetUserAsync((ulong)userId);
+        await user.KickAsync(reason);
+    }
+
+    public async Task BanUser(Guid conversationId, long userId, int prune = 0, string? reason = null)
+    {
+        conversationId.UnpackDiscordConversationId(out var guildId, out _);
+        var guild = await BotClient.GetGuildAsync(guildId);
+        var user = await guild.GetUserAsync((ulong)userId);
+        await user.BanAsync(prune, reason);
+    }
+
+    public async Task MuteUser(Guid conversationId, long userId, string? reason = null)
+    {
+        conversationId.UnpackDiscordConversationId(out var guildId, out _);
+        var guild = await BotClient.GetGuildAsync(guildId);
+        var user = await guild.GetUserAsync((ulong)userId);
+
+        var muteRole = guild.Roles.FirstOrDefault(r => r.Name == "Muted");
+        muteRole ??= await guild.CreateRoleAsync("Muted", new GuildPermissions(sendMessages: false), isMentionable: false);
+
+        await user.AddRoleAsync(muteRole);
+    }
+
+    public async Task UnmuteUser(Guid conversationId, long userId, string? reason = null)
+    {
+        conversationId.UnpackDiscordConversationId(out var guildId, out _);
+        var guild = await BotClient.GetGuildAsync(guildId);
+        var user = await guild.GetUserAsync((ulong)userId);
+
+        var muteRole = guild.Roles.FirstOrDefault(r => r.Name == "Muted");
+        muteRole ??= await guild.CreateRoleAsync("Muted", new GuildPermissions(sendMessages: false), isMentionable: false);
+
+        await user.RemoveRoleAsync(muteRole);
+    }
+
+    public async Task UnbanUser(Guid conversationId, long userId, string? reason = null)
+    {
+        conversationId.UnpackDiscordConversationId(out var guildId, out _);
+        var guild = await BotClient.GetGuildAsync(guildId);
+        var user = await guild.GetUserAsync((ulong)userId);
+        await guild.RemoveBanAsync(user);
+    }
 }

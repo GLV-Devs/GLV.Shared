@@ -136,17 +136,17 @@ public class SocketDiscordChatBotClient(
 
     private Task React_ChannelCreated(SocketChannel channel)
         => SubmitUpdate(
-            new DiscordChannelUpdateContext(this, channel, channel.PackDiscordConversationId(), DiscordUpdateKind.ChannelCreated, false)
+            new DiscordChannelUpdateContext(this, channel, ((IGuildChannel)channel).PackDiscordConversationId(), DiscordUpdateKind.ChannelCreated, false)
         );
 
     private Task React_ChannelDestroyed(SocketChannel channel)
         => SubmitUpdate(
-            new DiscordChannelUpdateContext(this, channel, channel.PackDiscordConversationId(), DiscordUpdateKind.ChannelDeleted, false)
+            new DiscordChannelUpdateContext(this, channel, ((IGuildChannel)channel).PackDiscordConversationId(), DiscordUpdateKind.ChannelDeleted, false)
         );
 
     private Task React_ChannelUpdated(SocketChannel old, SocketChannel @new)
         => SubmitUpdate(
-            new DiscordChannelUpdatedUpdateContext(this, old, @new, @new.PackDiscordConversationId(), false)
+            new DiscordChannelUpdatedUpdateContext(this, old, @new, ((IGuildChannel)@new).PackDiscordConversationId(), false)
         );
 
     private Task React_VoiceChannelStatusUpdated()
@@ -154,7 +154,7 @@ public class SocketDiscordChatBotClient(
 
     private Task React_MessageReceived(SocketMessage msg) 
         => SubmitUpdate(
-            new DiscordMessageReceivedUpdateContext(this, msg, msg.Channel.PackDiscordConversationId(), false)
+            new DiscordMessageReceivedUpdateContext(this, msg, ((IGuildChannel)msg.Channel).PackDiscordConversationId(), false)
         );
 
     private Task React_MessageDeleted()
