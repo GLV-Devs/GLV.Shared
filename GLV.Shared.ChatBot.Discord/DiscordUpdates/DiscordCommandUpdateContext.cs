@@ -1,4 +1,5 @@
-﻿using Discord.Commands;
+﻿using Discord;
+using Discord.Commands;
 
 namespace GLV.Shared.ChatBot.Discord.DiscordUpdates;
 
@@ -33,5 +34,8 @@ public class DiscordCommandUpdateContext : DiscordUpdateContext
     {
         CommandInfo = commandInfo;
         CommandContext = commandContext ?? throw new ArgumentNullException(nameof(commandContext));
+        IsDirectMessage = commandContext.Channel is IDMChannel;
     }
+
+    public override bool IsDirectMessage { get; }
 }

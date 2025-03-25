@@ -33,5 +33,8 @@ public class DiscordChannelUpdateContext : DiscordUpdateContext
     ) : base(client, conversationId, kind, isHandledByBotClient)
     {
         Channel = channel;
+        IsDirectMessage = channel is IDMChannel;
     }
+
+    public override bool IsDirectMessage { get; }
 }

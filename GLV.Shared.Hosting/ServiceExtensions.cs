@@ -12,6 +12,16 @@ public static class ServiceExtensions
         return services;
     }
 
+    public static IServiceCollection AddGLVCache<TKey, TCachedItem>(
+        this IServiceCollection services,
+        Func<TKey, TCachedItem, ValueTask<bool>>? istemValidChecker,
+        IEqualityComparer<TKey>? equalityComparer = null
+    ) where TKey : notnull
+    {
+        services.AddSingleton<Cache<TKey, TCachedItem>>(s => new(istemValidChecker, equalityComparer));
+        return services;
+    }
+
     public static IServiceScope GetServices<T>(this IServiceScope scope, out IEnumerable<T> services)
     {
         services = scope.ServiceProvider.GetServices<T>();
