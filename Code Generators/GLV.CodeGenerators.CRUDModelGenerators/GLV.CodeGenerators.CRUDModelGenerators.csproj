@@ -19,6 +19,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog" Version="4.2.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\GLV.Shared.DataTransfer\GLV.Shared.DataTransfer.csproj" />
     <ProjectReference Include="..\..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
     <ProjectReference Include="..\..\GLV.Shared.EntityFramework\GLV.Shared.EntityFramework.csproj" />

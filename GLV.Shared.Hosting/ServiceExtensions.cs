@@ -1,10 +1,17 @@
-﻿using GLV.Shared.Hosting;
+﻿using GLV.Shared.Common;
+using GLV.Shared.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GLV.Shared.Hosting;
 
 public static class ServiceExtensions
 {
+    public static IServiceCollection AddGLVCache(this IServiceCollection services)
+    {
+        services.AddSingleton(typeof(Cache<,>));
+        return services;
+    }
+
     public static IServiceScope GetServices<T>(this IServiceScope scope, out IEnumerable<T> services)
     {
         services = scope.ServiceProvider.GetServices<T>();

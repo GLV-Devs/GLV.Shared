@@ -1,7 +1,9 @@
-﻿using System.Net;
+﻿using GLV.Shared.Data;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net;
 using System.Runtime.CompilerServices;
 
-namespace GLV.Shared.Data;
+namespace GLV.Shared.Server.Data;
 
 public static partial class ErrorMessagesExtensions
 {

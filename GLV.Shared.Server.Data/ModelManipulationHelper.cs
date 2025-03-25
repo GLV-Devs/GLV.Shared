@@ -1,12 +1,13 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using GLV.Shared.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Runtime.CompilerServices;
 
-namespace GLV.Shared.Data;
+namespace GLV.Shared.Server.Data;
 
 public static class ModelManipulationHelper
 {
-    public static bool IsUpdatingNullable<T>(UpdateNullableStruct<T?>? updateNullable, out T? value)
+    public static bool IsUpdatingNullable<T>(NullUpdateable<T?>? updateNullable, out T? value)
         where T : struct
     {
         if (updateNullable.HasValue)
@@ -18,7 +19,7 @@ public static class ModelManipulationHelper
         return false;
     }
 
-    public static bool IsUpdatingNullable<T>(UpdateNullableStruct<T>? updateNullable, out T? value)
+    public static bool IsUpdatingNullable<T>(NullUpdateable<T>? updateNullable, out T? value)
         where T : struct
     {
         if (updateNullable.HasValue)
@@ -30,7 +31,7 @@ public static class ModelManipulationHelper
         return false;
     }
 
-    public static bool IsUpdatingNullableReference<T>(UpdateNullableStruct<T>? updateNullable, out T? value)
+    public static bool IsUpdatingNullableReference<T>(NullUpdateable<T>? updateNullable, out T? value)
     {
         if (updateNullable.HasValue)
         {
@@ -84,7 +85,7 @@ public static class ModelManipulationHelper
 
     public static bool IsNull<T>(
         this ref ErrorList errors, 
-        [NotNullWhen(false)] Nullable<T> value, 
+        [NotNullWhen(false)] T? value, 
         [CallerArgumentExpression(nameof(value))] string property = "")
         where T : struct
     {

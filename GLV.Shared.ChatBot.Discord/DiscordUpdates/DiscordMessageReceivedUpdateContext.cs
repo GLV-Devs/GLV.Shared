@@ -10,22 +10,26 @@ public class DiscordMessageReceivedUpdateContext : DiscordUpdateContext
     {
         get
         {
-            var refMessage = MessageObject.Reference.MessageId;
-            long? refmsid = refMessage.IsSpecified ? (long)refMessage.Value : null;
+            var refMessage = MessageObject.Reference?.MessageId;
+            long? refmsid = refMessage is Optional<ulong> rm && rm.IsSpecified ? (long)rm.Value : null;
 
             return new(
                 MessageObject.Content, 
                 (long)MessageObject.Id, 
-                refmsid, 
-                new UserInfo(
+                refmsid,
+                MessageObject.Author is not null 
+                ? new UserInfo(
                     MessageObject.Author.Username,
                     MessageObject.Author.GlobalName,
                     MessageObject.Author.PackDiscordUserId()
-                ), 
-                MessageObject.Attachments.Count > 0
+                )
+                : null, 
+                MessageObject.Attachments?.Count is > 0
             );
         }
     }
+
+    public override MemberEvent? MemberEvent => null;
 
     internal DiscordMessageReceivedUpdateContext(
         IChatBotClient client,

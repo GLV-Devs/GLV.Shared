@@ -7,12 +7,13 @@
     <Version>$(AssemblyVersion)</Version>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <AssemblyVersion>0.0.*</AssemblyVersion>
-	<Title>GLV Shared Server Classes Library</Title>
+	<Title>GLV Shared Server Identity Classes Library</Title>
 	<Authors>Diego Garcia</Authors>
 	<Company>GLV Softworks</Company>
 	<Copyright>Diego Garcia ©️ 2024</Copyright>
 	<RepositoryType>git</RepositoryType>
 	<NeutralLanguage>en</NeutralLanguage>
+	<LangVersion>preview</LangVersion>
 	<Deterministic>False</Deterministic>
 	<InvariantGlobalization>false</InvariantGlobalization>
 	<NoWarn>7035</NoWarn>
@@ -43,7 +44,7 @@
 	  <ProjectReference Include="..\GLV.Shared.EntityFrameworkHosting\GLV.Shared.EntityFrameworkHosting.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.EntityFramework\GLV.Shared.EntityFramework.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Hosting\GLV.Shared.Hosting.csproj" />
-	  <ProjectReference Include="..\GLV.Shared.Server.Data\GLV.Shared.Server.Data.csproj" />
+	  <ProjectReference Include="..\GLV.Shared.Server.API\GLV.Shared.Server.API.csproj" />
 	</ItemGroup>
 	
 </Project>

@@ -1,4 +1,6 @@
-﻿namespace GLV.Shared.Data;
+﻿using GLV.Shared.Data;
+
+namespace GLV.Shared.Server.Data;
 
 public interface IRepository<TModel, TKey, TView, TCreateModel, TUpdateModel>
     where TModel : class, IKeyed<TModel, TKey>

@@ -20,6 +20,7 @@ public class DiscordChannelUpdatedUpdateContext : DiscordChannelUpdateContext
 
 public class DiscordChannelUpdateContext : DiscordUpdateContext
 {
+    public override MemberEvent? MemberEvent => null;
     public override Message? Message => null;
     public IChannel Channel { get; }
 

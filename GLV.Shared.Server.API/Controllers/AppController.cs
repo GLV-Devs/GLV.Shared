@@ -3,6 +3,7 @@ using System.Net;
 using System.Security.Claims;
 using GLV.Shared.Data;
 using Microsoft.AspNetCore.Http;
+using GLV.Shared.Server.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -32,7 +33,7 @@ public abstract class AppController<TUser>(ILogger<AppController<TUser>> logger)
     }
 
     [FromServices]
-    public UserManager<TUser> UserManager { get; set; }
+    public UserManager<TUser> UserManager { get; set; } = null!;
 
     protected readonly ILogger<AppController<TUser>> Logger = logger ?? throw new ArgumentNullException(nameof(logger));
 

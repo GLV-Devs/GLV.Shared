@@ -10,17 +10,21 @@ namespace GLV.Shared.ChatBot;
 
 public interface IConversationStore
 {
-    public enum ConversationNotObtainedReason
+    public enum ConversationContextStatus
     {
         Unknown = 0,
         ConversationWasObtained,
         ConversationNotFound,
-        ConversationUnderThreadContention
+        ConversationUnderThreadContention,
+        ConversationObtainedFromCache
     }
 
-    public readonly record struct FetchConversationResult(ConversationContext? Context, ConversationNotObtainedReason NotObtainedReason);
+    public readonly record struct FetchConversationResult(ConversationContext? Context, ConversationContextStatus Status);
 
-    public ValueTask<FetchConversationResult> FetchConversation(Guid conversationId);
+    public IConversationStoreCache? Cache { get; }
+    public bool IsCachingEnabled => Cache is not null;
+
+    public ValueTask<FetchConversationResult> FetchConversation(Guid conversationId, bool skipCache = false);
     public Task DeleteConversation(Guid conversationId);
     public Task SaveChanges(ConversationContext context);
 

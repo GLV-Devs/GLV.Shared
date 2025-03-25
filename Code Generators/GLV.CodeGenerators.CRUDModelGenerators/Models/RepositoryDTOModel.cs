@@ -30,9 +30,12 @@ public class RepositoryDTOModel(RepositoryGenerator generator, Type modelType, s
 
     protected override ValueTask BeforeClassName(StreamWriter output)
     {
-        Debug.Assert(ViewModel is not null);
-        Debug.Assert(CreateModel is not null);
-        Debug.Assert(UpdateModel is not null);
+        //Debug.Assert(ViewModel is not null);
+        //Debug.Assert(CreateModel is not null);
+        //Debug.Assert(UpdateModel is not null);
+
+        if (ViewModel is null || CreateModel is null || UpdateModel is null)
+            return ValueTask.CompletedTask;
 
         output.Write("[RegisterService(typeof(IRepository<");
         output.Write(ModelType.Name);
@@ -55,9 +58,12 @@ public class RepositoryDTOModel(RepositoryGenerator generator, Type modelType, s
 
     protected override ValueTask AfterClassName(StreamWriter output)
     {
-        Debug.Assert(ViewModel is not null);
-        Debug.Assert(CreateModel is not null);
-        Debug.Assert(UpdateModel is not null);
+        //Debug.Assert(ViewModel is not null);
+        //Debug.Assert(CreateModel is not null);
+        //Debug.Assert(UpdateModel is not null);
+
+        if (ViewModel is null || CreateModel is null || UpdateModel is null)
+            return ValueTask.CompletedTask;
 
         output.Write("(DbContext context) : EntityFrameworkRepository<");
         output.Write(ModelType.Name);
@@ -76,14 +82,17 @@ public class RepositoryDTOModel(RepositoryGenerator generator, Type modelType, s
 
     protected override ValueTask BeforeCommitToDisk(string directory, string path, CancellationToken ct = default)
     {
-        if (ViewModel is null)
-            throw new InvalidOperationException($"All DTO models must be set before the repository can be generated. This is likely due to no properties being decorated with the relevant attribute. If you don't intend for a repository to be generated, decorate the class with NoRepositoryGenerationAttribute. ViewModel is missing for type: {ModelType.Name}");
+        //if (ViewModel is null)
+        //    throw new InvalidOperationException($"All DTO models must be set before the repository can be generated. This is likely due to no properties being decorated with the relevant attribute. If you don't intend for a repository to be generated, decorate the class with NoRepositoryGenerationAttribute. ViewModel is missing for type: {ModelType.Name}");
 
-        if (UpdateModel is null)
-            throw new InvalidOperationException($"All DTO models must be set before the repository can be generated. This is likely due to no properties being decorated with the relevant attribute. If you don't intend for a repository to be generated, decorate the class with NoRepositoryGenerationAttribute. UpdateModel is missing for type: {ModelType.Name}");
+        //if (UpdateModel is null)
+        //    throw new InvalidOperationException($"All DTO models must be set before the repository can be generated. This is likely due to no properties being decorated with the relevant attribute. If you don't intend for a repository to be generated, decorate the class with NoRepositoryGenerationAttribute. UpdateModel is missing for type: {ModelType.Name}");
 
-        if (CreateModel is null)
-            throw new InvalidOperationException($"All DTO models must be set before the repository can be generated. This is likely due to no properties being decorated with the relevant attribute. If you don't intend for a repository to be generated, decorate the class with NoRepositoryGenerationAttribute. CreateModel is missing for type: {ModelType.Name}");
+        //if (CreateModel is null)
+        //    throw new InvalidOperationException($"All DTO models must be set before the repository can be generated. This is likely due to no properties being decorated with the relevant attribute. If you don't intend for a repository to be generated, decorate the class with NoRepositoryGenerationAttribute. CreateModel is missing for type: {ModelType.Name}");
+
+        if (ViewModel is null || UpdateModel is null || CreateModel is null)
+            return ValueTask.CompletedTask;
 
         AddUsing(ViewModel.Namespace);
         AddUsing("System");

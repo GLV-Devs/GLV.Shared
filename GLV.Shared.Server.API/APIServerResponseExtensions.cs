@@ -1,7 +1,9 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using System.Net;
 using GLV.Shared.Data;
 using GLV.Shared.DataTransfer;
+using GLV.Shared.Server.Data;
 using GLV.Shared.Server.API.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -45,6 +47,19 @@ public static class APIServerResponseExtensions
         return new ObjectResult(resp) { StatusCode = 200 };
     }
 
+    public static ObjectResult CreateServerResponseResult<TData>(this ControllerBase controller, TData? data)
+    {
+        IServerResponse resp = data.CreateServerResponse(controller.HttpContext.TraceIdentifier);
+
+        if (data is ErrorList errorList)
+            return new ObjectResult(resp) { StatusCode = (int)(errorList.RecommendedCode ?? HttpStatusCode.BadRequest) };
+
+        if (data is IEnumerable<ErrorMessage>)
+            return new ObjectResult(resp) { StatusCode = (int)HttpStatusCode.BadRequest };
+
+        return new ObjectResult(resp) { StatusCode = 200 };
+    }
+
     public static ObjectResult CreateServerResponseResult(this ControllerBase controller, object? data)
     {
         IServerResponse? resp = data.CreateServerResponse(controller.HttpContext.TraceIdentifier);
@@ -60,10 +75,10 @@ public static class APIServerResponseExtensions
         return new ObjectResult(resp) { StatusCode = 200 };
     }
 
-    public static IServerResponse? CreateServerResponse(this object? data, string traceIdentifier)
+    public static IServerResponse CreateServerResponse(this object? data, string traceIdentifier)
         => data switch
         {
-            null => null,
+            null => new ServerResponse(null, traceIdentifier, null),
             AsyncResultData resultData => AsyncResultDataExtensions.CreateServerResponse(resultData, traceIdentifier),
             ProblemDetails problem => ProblemDetailsExtensions.CreateServerResponse(problem, traceIdentifier),
             ErrorList errorList => ServerResponse.CreateServerResponse(errorList, traceIdentifier),
@@ -73,4 +88,27 @@ public static class APIServerResponseExtensions
             IEnumerable models => ServerResponse.CreateServerResponse(models, traceIdentifier),
             object model => ServerResponse.CreateServerResponseFromObject(model, traceIdentifier),
         };
+
+    public static IServerResponse CreateServerResponse<TData>(this TData? data, string traceIdentifier)
+    {
+        if (data is null)
+        {
+            return typeof(TData).IsAssignableTo(typeof(IEnumerable))
+                ? new ServerResponse(typeof(TData).GetCollectionInnerType().Name, traceIdentifier, null)
+                : new ServerResponse(typeof(TData).Name, traceIdentifier, null);
+        }
+
+        Debug.Assert(data is not null);
+        return data switch
+        {
+            AsyncResultData resultData => AsyncResultDataExtensions.CreateServerResponse(resultData, traceIdentifier),
+            ProblemDetails problem => ProblemDetailsExtensions.CreateServerResponse(problem, traceIdentifier),
+            ErrorList errorList => ServerResponse.CreateServerResponse(errorList, traceIdentifier),
+            IEnumerable<ErrorMessage> errors => ServerResponse.CreateServerResponse(errors, traceIdentifier),
+            string str => ServerResponse.CreateServerResponseFromString(str, traceIdentifier),
+            IEnumerable<string> strings => ServerResponse.CreateServerResponseFromString(strings, traceIdentifier),
+            IEnumerable models => ServerResponse.CreateServerResponse<TData>(models, traceIdentifier),
+            object model => ServerResponse.CreateServerResponseFromObject(model, traceIdentifier),
+        };
+    }
 }

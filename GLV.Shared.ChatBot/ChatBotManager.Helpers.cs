@@ -73,7 +73,6 @@ public partial class ChatBotManager
     }
 
     public static ChatBotManager CreateChatBotWithReflectedActions(
-        ServiceDescriptor conversationStoreServiceDescription,
         IEnumerable<Type> globalPipelineHandlers,
         string? chatBotManagerIdentifier = null,
         Func<ConversationActionAttribute.ActionInfoDetails, bool>? predicate = null,
@@ -83,15 +82,11 @@ public partial class ChatBotManager
         ChatBotManager.OnUpdateExceptionThrownHandler? exceptionHandler = null
     )
     {
-        if (conversationStoreServiceDescription.ServiceType != typeof(IConversationStore))
-            throw new ArgumentException("The store service descriptor doesn't describe a service type of IConversationStore. The implementation type needs only be assignable to it, but the service type MUST be IConversationStore", nameof(conversationStoreServiceDescription));
-
         var (defaultAction, actions) = GatherReflectedActions(predicate, assemblies);
         return new ChatBotManager(
             defaultAction,
             actions,
             globalPipelineHandlers,
-            conversationStoreServiceDescription,
             chatBotManagerIdentifier,
             updateFilter,
             configureServices,

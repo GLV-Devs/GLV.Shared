@@ -153,9 +153,11 @@ public class SocketDiscordChatBotClient(
         => Task.CompletedTask;
 
     private Task React_MessageReceived(SocketMessage msg) 
-        => SubmitUpdate(
-            new DiscordMessageReceivedUpdateContext(this, msg, ((IGuildChannel)msg.Channel).PackDiscordConversationId(), false)
-        );
+        => msg.Author.Id == DiscordBotId
+            ? Task.CompletedTask
+            : SubmitUpdate(
+                new DiscordMessageReceivedUpdateContext(this, msg, ((IGuildChannel)msg.Channel).PackDiscordConversationId(), false)
+            );
 
     private Task React_MessageDeleted()
         => Task.CompletedTask;

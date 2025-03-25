@@ -8,21 +8,6 @@ using System.Threading.Tasks;
 
 namespace GLV.Shared.ChatBot;
 
-public readonly record struct UserInfo(string? Username, string? DisplayName, Guid UserId);
-public readonly record struct Message(string? Text, long MessageId, long? InResponseToMessageId, UserInfo? Sender, bool HasExtraData);
-public readonly record struct KeyboardKey(string Text, string? Data);
-public readonly record struct KeyboardRow(params IEnumerable<KeyboardKey> Keys);
-public readonly record struct Keyboard(params IEnumerable<KeyboardRow> Rows);
-
-public readonly record struct KeyboardResponse(string KeyboardId, string? Data)
-{
-    public bool MatchDataTag(string data)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(data);
-        return Data == data;
-    }
-}
-
 public abstract class UpdateContext(IChatBotClient client, Guid conversationId, string platform)
 {
     private Dictionary<Type, object>? Features;
@@ -82,4 +67,6 @@ public abstract class UpdateContext(IChatBotClient client, Guid conversationId, 
 
     public abstract KeyboardResponse? KeyboardResponse { get; }
     public abstract Message? Message { get; }
+    public abstract MemberEvent? MemberEvent { get; }
+    public abstract bool IsDirectMessage { get; }
 }

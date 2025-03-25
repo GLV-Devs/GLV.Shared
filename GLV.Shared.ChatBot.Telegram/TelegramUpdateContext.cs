@@ -26,17 +26,7 @@ public class TelegramUpdateContext(
             update.Message.Text, 
             update.Message.Id,
             update.Message.ReplyToMessage?.Id,
-            update.Message.From is User u 
-            ? new UserInfo(
-                u.Username,
-                string.IsNullOrWhiteSpace(u.FirstName) is false
-                    ? string.IsNullOrWhiteSpace(u.LastName) is false
-                        ? $"{u.FirstName} {u.LastName}"
-                        : u.FirstName
-                    : null,
-                u.PackTelegramUserId()
-            )
-            : null,
+            update.Message.From?.GetUserInfo(),
             update.Message.Type != MessageType.Text
         );
 
@@ -44,4 +34,23 @@ public class TelegramUpdateContext(
         = update.CallbackQuery is null
         ? null
         : new KeyboardResponse(update.CallbackQuery.Id, update.CallbackQuery.Data);
+
+    public override MemberEvent? MemberEvent { get; }
+        = update.ChatMember is null
+        ? null
+        : new MemberEvent(
+            update.ChatMember.NewChatMember.User.GetUserInfo(),
+            update.ChatMember.From?.GetUserInfo(),
+            update.ChatMember.NewChatMember.Status switch
+            { 
+                ChatMemberStatus.Left => MemberEventKind.MemberLeft, 
+                ChatMemberStatus.Kicked => MemberEventKind.MemberKicked, 
+                _ => update.ChatMember.OldChatMember?.IsInChat is false ? MemberEventKind.MemberJoined : MemberEventKind.Other,
+            }
+        );
+
+    public override bool IsDirectMessage { get; }
+        = update.Message is null
+        ? false
+        : update.Message.Chat.Type is ChatType.Private;
 }

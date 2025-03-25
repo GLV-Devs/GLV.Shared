@@ -100,8 +100,7 @@ public abstract class DTOModel(IDTOGenerator generator, Type originalType, strin
 
                 case PropertyKind.Collection:
                     var idtype = GeneratorHelpers.GetIdType(data.Type);
-                    Debug.Assert(idtype is not null);
-                    t = typeof(IEnumerable<>).MakeGenericType(idtype);
+                    t = idtype is null ? typeof(IEnumerable<>).MakeGenericType(data.Type) : typeof(IEnumerable<>).MakeGenericType(idtype);
                     typename = $"{GeneratorHelpers.BuildTypeNameAsCSharpTypeExpression(t).Expression}?";
                     break;
 

@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using GLV.Shared.Data;
+using GLV.Shared.Server.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,14 +18,8 @@ public abstract class RepositoryController<TUser, TContext, TModel, TKey, TView,
 {
     protected readonly IRepository<TModel, TKey, TView, TCreateModel, TUpdateModel> Repository = repository ?? throw new ArgumentNullException(nameof(repository));
 
-    public RepositoryController(
-        ILogger<RepositoryController<TUser, TContext, TModel, TKey, TView, TCreateModel, TUpdateModel>> logger,
-        IRepository<TModel, TKey, TView, TCreateModel, TUpdateModel> repository,
-        UserManager<TUser> userManager
-    ) : this(logger, repository) { }
-
     [FromServices]
-    public TContext Context { get; init; }
+    public TContext Context { get; init; } = null!;
 
     [NonAction]
     public virtual Task<bool> CheckIfEntityExists<TEntity, TEntityKey>(TEntityKey key)

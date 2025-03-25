@@ -3,28 +3,15 @@ using System.Data;
 
 namespace GLV.Shared.ChatBot.EntityFramework.TypeHandlers;
 
-public class SqlGuidTypeHandler : SqlMapper.TypeHandler<Guid>
+public class SqlNullableGuidTypeHandler : SqlMapper.TypeHandler<Guid?>
 {
-    public override void SetValue(IDbDataParameter parameter, Guid guid)
-    {
-        parameter.Value = guid.ToString();
-    }
+    public override void SetValue(IDbDataParameter parameter, Guid? guid) 
+        => parameter.Value = guid?.ToString();
 
-    public override Guid Parse(object value)
+    public override Guid? Parse(object value) => value switch
     {
-        return Guid.Parse((string)value);
-    }
-}
-
-public class SqlNullableGuidTypeHandler : SqlMapper.TypeHandler<Guid>
-{
-    public override void SetValue(IDbDataParameter parameter, Guid guid)
-    {
-        parameter.Value = guid.ToString();
-    }
-
-    public override Guid Parse(object value)
-    {
-        return Guid.Parse((string)value);
-    }
+        string str => Guid.Parse(str),
+        Guid g => g,
+        _ => null,
+    };
 }

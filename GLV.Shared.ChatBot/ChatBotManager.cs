@@ -34,26 +34,18 @@ public partial class ChatBotManager
         DefaultActionDefinition defaultAction,
         IEnumerable<ConversationActionDefinition> actions,
         IEnumerable<Type> globalPipelineHandlers,
-        ServiceDescriptor conversationStoreServiceDescription,
         string? chatBotManagerIdentifier = null,
         Func<UpdateContext, ValueTask<bool>>? updateFilter = null,
         IServiceCollection? configureServices = null,
         OnUpdateExceptionThrownHandler? exceptionHandler = null
     )
     {
-        ArgumentNullException.ThrowIfNull(conversationStoreServiceDescription);
-
-        if (conversationStoreServiceDescription.ServiceType != typeof(IConversationStore))
-            throw new ArgumentException("The store service descriptor doesn't describe a service type of IConversationStore. The implementation type needs only be assignable to it, but the service type MUST be IConversationStore", nameof(conversationStoreServiceDescription));
-
         this.exceptionHandler = exceptionHandler;
 
         UpdateFilter = updateFilter;
         Identifier = string.IsNullOrWhiteSpace(chatBotManagerIdentifier) ? Guid.NewGuid().ToString() : chatBotManagerIdentifier;
 
         var serviceCollection = configureServices ?? new ServiceCollection();
-
-        serviceCollection.Add(conversationStoreServiceDescription);
 
         DefaultActionServiceKey = $"ConversationAction!{Identifier}::default";
         serviceCollection.AddKeyedScoped(defaultAction.ConversationAction, DefaultActionServiceKey);
@@ -241,46 +233,54 @@ public partial class ChatBotManager
 
     protected virtual async Task<ConversationContext> GetOrCreateContext(IConversationStore store, UpdateContext update)
     {
-        int attempt = 0;
-        while (true)
+        try
         {
-            var fetchResult = await store.FetchConversation(update.ConversationId);
-            if (fetchResult.NotObtainedReason is IConversationStore.ConversationNotObtainedReason.ConversationNotFound)
+            int attempt = 0;
+            while (true)
             {
-                var context = await CreateContext(update);
-                await store.SaveChanges(context);
-                return context;
-            }
-            else if (fetchResult.NotObtainedReason is IConversationStore.ConversationNotObtainedReason.ConversationUnderThreadContention)
-            {
-                Debug.WriteLine($"Conversation of id '{update.ConversationId}' is under contention");
-                var ta = OnConversationContextThreadContention?.Invoke(update, attempt++);
-                if (ta is not ValueTask<TimeSpan> task)
+                var fetchResult = await store.FetchConversation(update.ConversationId);
+                if (fetchResult.Status is IConversationStore.ConversationContextStatus.ConversationNotFound)
                 {
-                    await Task.Delay(500);
-                    continue;
+                    var context = await CreateContext(update);
+                    await store.SaveChanges(context);
+                    return context;
                 }
+                else if (fetchResult.Status is IConversationStore.ConversationContextStatus.ConversationUnderThreadContention)
+                {
+                    Debug.WriteLine($"Conversation of id '{update.ConversationId}' is under contention");
+                    var ta = OnConversationContextThreadContention?.Invoke(update, attempt++);
+                    if (ta is not ValueTask<TimeSpan> task)
+                    {
+                        await Task.Delay(500);
+                        continue;
+                    }
 
-                var to = await task;
-                if (to is TimeSpan timeout and { Ticks: > 0 })
-                {
-                    await Task.Delay(timeout);
-                    continue;
+                    var to = await task;
+                    if (to is TimeSpan timeout and { Ticks: > 0 })
+                    {
+                        await Task.Delay(timeout);
+                        continue;
+                    }
+                    throw UnprocessableUpdateException(update.ConversationId, attempt);
                 }
-                throw UnprocessableUpdateException(update.ConversationId, attempt);
+                else
+                {
+                    Debug.Assert(
+                        fetchResult.Status is IConversationStore.ConversationContextStatus.ConversationWasObtained,
+                        "Reached a point in the code where the only possible NotObtainedReason was that it was obtained, but it did not equal this value"
+                    );
+                    Debug.Assert(
+                        fetchResult.Context is not null,
+                        "fetchResult.Context was unexpectedly null"
+                    );
+                    return fetchResult.Context;
+                }
             }
-            else
-            {
-                Debug.Assert(
-                    fetchResult.NotObtainedReason is IConversationStore.ConversationNotObtainedReason.ConversationWasObtained,
-                    "Reached a point in the code where the only possible NotObtainedReason was that it was obtained, but it did not equal this value"
-                );
-                Debug.Assert(
-                    fetchResult.Context is not null,
-                    "fetchResult.Context was unexpectedly null"
-                );
-                return fetchResult.Context;
-            }
+        }
+        catch (Exception e)
+        {
+            SinkLogMessage(5, "An unexpected exception was thrown whilst attempting produce a ConversationContext", e.GetHashCode(), update.Platform, update.Client.BotId, e);
+            throw;
         }
     }
 

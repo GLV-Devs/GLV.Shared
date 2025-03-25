@@ -1,9 +1,10 @@
-﻿using Microsoft.VisualBasic.FileIO;
+﻿using GLV.Shared.Data;
+using Microsoft.VisualBasic.FileIO;
 using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-namespace GLV.Shared.Data;
+namespace GLV.Shared.Server.Data;
 
 public static partial class ErrorMessages
 {

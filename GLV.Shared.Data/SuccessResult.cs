@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using GLV.Shared.Common;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace GLV.Shared.Data;
@@ -50,6 +51,9 @@ public readonly struct SuccessResult<T>
 
     public static implicit operator SuccessResult<T>(ErrorList errors)
         => new(errors);
+
+    public static implicit operator SuccessResult<T>(Success<T> value)
+        => value.TryGetResult(out var t) ? new(t) : Failure;
 
     public bool TryGetResult([NotNullWhen(true)][MaybeNullWhen(false)] out T result)
     {

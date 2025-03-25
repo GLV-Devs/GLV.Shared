@@ -1,4 +1,6 @@
-﻿namespace GLV.Shared.Data;
+﻿using GLV.Shared.Data;
+
+namespace GLV.Shared.Server.Data;
 
 public interface IEntityQuery<TModel, TKey>
     where TModel : class, IKeyed<TModel, TKey>

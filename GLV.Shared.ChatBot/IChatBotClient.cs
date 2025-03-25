@@ -20,9 +20,6 @@ public interface IScopedChatBotClient : IChatBotClient
     public Task EditMessage(long messageId, string? newText, Keyboard? newKeyboard = null, MessageOptions options = default)
         => EditMessage(ScopedConversation, messageId, newText, newKeyboard, options);
 
-    public Task<bool> TryDeleteMessage(long messageId)
-        => TryDeleteMessage(ScopedConversation, messageId);
-
     public Task KickUser(long userId, string? reason = null)
         => KickUser(ScopedConversation, userId, reason);
 
@@ -75,20 +72,6 @@ public interface IChatBotClient
     public Task MuteUser(Guid conversationId, long userId, string? reason = null);
     public Task UnmuteUser(Guid conversationId, long userId, string? reason = null);
     public Task UnbanUser(Guid conversationId, long userId, string? reason = null);
-
-    public async Task<bool> TryDeleteMessage(Guid conversationId, long messageId)
-    {
-        try
-        {
-            await DeleteMessage(conversationId, messageId);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
     public Task ProcessUpdate(UpdateContext update, ConversationContext context);
     public Task PrepareBot();
     public bool IsReferringToBot(string text);

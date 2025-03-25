@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
+    <ProjectReference Include="..\GLV.Shared.Server.Data\GLV.Shared.Server.Data.csproj" />
   </ItemGroup>
 
 </Project>

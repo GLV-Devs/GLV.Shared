@@ -21,6 +21,8 @@ public class DiscordCommandUpdateContext : DiscordUpdateContext
             CommandContext.Message.Attachments.Count > 0
         );
 
+    public override MemberEvent? MemberEvent => null;
+
     internal DiscordCommandUpdateContext(
         IChatBotClient client,
         ICommandContext commandContext,

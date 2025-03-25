@@ -34,8 +34,7 @@ public sealed class UpdateDTOModel(UpdateModelGenerator updateModelGenerator, Ty
 
                 case PropertyKind.Collection:
                     var idtype = GeneratorHelpers.GetIdType(data.Type);
-                    Debug.Assert(idtype is not null);
-                    t = typeof(IEnumerable<>).MakeGenericType(typeof(EditAction<>).MakeGenericType(idtype));
+                    t = idtype is null ? typeof(IEnumerable<>).MakeGenericType(data.Type) : typeof(IEnumerable<>).MakeGenericType(idtype);
                     typename = $"{GeneratorHelpers.BuildTypeNameAsCSharpTypeExpression(t).Expression}?";
                     break;
 
@@ -50,7 +49,7 @@ public sealed class UpdateDTOModel(UpdateModelGenerator updateModelGenerator, Ty
             if (data.Property.PropertyType.IsValueType)
             {
                 AddUsing("GLV.Shared.Data");
-                Contents.Append("UpdateNullableStruct<");
+                Contents.Append("NullUpdateable<");
                 Contents.Append(typename);
                 Contents.Append(">? ");
             }

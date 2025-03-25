@@ -27,6 +27,14 @@ public sealed class ServerResponse(string? dataType, string traceId, IEnumerable
             new string[] { str }
         );
 
+    public static IServerResponse CreateServerResponse<TData>(IEnumerable objects, string traceIdentifier)
+    {
+        var first = objects.Cast<object>().FirstOrDefault();
+        return first is null
+            ? new ServerResponse(typeof(TData).GetCollectionInnerType().Name, traceIdentifier, null)
+            : new ServerResponse(first.GetType().Name, traceIdentifier, objects);
+    }
+
     public static IServerResponse CreateServerResponse(IEnumerable objects, string traceIdentifier)
     {
         var first = objects.Cast<object>().FirstOrDefault();

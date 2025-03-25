@@ -8,7 +8,32 @@ namespace GLV.Shared.ChatBot.Telegram;
 
 public static class TelegramExtensions
 {
+    public static UserInfo GetUserInfo(this User u)
+        => new(
+            u.Username,
+            string.IsNullOrWhiteSpace(u.FirstName) is false
+                ? string.IsNullOrWhiteSpace(u.LastName) is false
+                    ? $"{u.FirstName} {u.LastName}"
+                    : u.FirstName
+                : null,
+            u.PackTelegramUserId()
+        );
+
+    public static UserInfo GetUserInfo(this global::Telegram.Bot.Types.User u)
+        => new(
+            u.Username,
+            string.IsNullOrWhiteSpace(u.FirstName) is false
+                ? string.IsNullOrWhiteSpace(u.LastName) is false
+                    ? $"{u.FirstName} {u.LastName}"
+                    : u.FirstName
+                : null,
+            u.PackTelegramUserId()
+        );
+
     public static Guid PackTelegramUserId(this User user)
+        => MemoryMarshal.Cast<long, Guid>([0, user.Id])[0];
+
+    public static Guid PackTelegramUserId(this global::Telegram.Bot.Types.User user)
         => MemoryMarshal.Cast<long, Guid>([0, user.Id])[0];
 
     public static long UnpackTelegramConversationId(this Guid conversationId)

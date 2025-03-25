@@ -12,6 +12,7 @@ namespace GLV.Shared.ChatBot.EntityFramework;
 
 public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
     DbContext context, 
+    IConversationStoreCache? cache,
     Func<ConversationContext, TContextModel> entityFactory,
     EntityFrameworkConversationStore<TContextModel, TContextModelKey>.ConversationContextModelUpdateHandler? handler = null
 ) : IConversationStore
@@ -29,10 +30,7 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
 
     static EntityFrameworkConversationStore()
     {
-        SqlMapper.AddTypeHandler(new SqlGuidTypeHandler());
         SqlMapper.AddTypeHandler(new SqlNullableGuidTypeHandler());
-        SqlMapper.RemoveTypeMap(typeof(Guid));
-        SqlMapper.RemoveTypeMap(typeof(Guid?));
     }
 
     public bool AllowDeletesToAffectMultipleRows { get; init; } = false;
@@ -50,14 +48,17 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
         return __tabname;
     }
 
-    public async ValueTask<FetchConversationResult> FetchConversation(Guid conversationId)
+    public async ValueTask<FetchConversationResult> FetchConversation(Guid conversationId, bool skipCache = false)
     {
         var sem = await KeyChain.WaitForSemaphoreWithTimeout(conversationId, 500);
         if (sem is null)
-            return new FetchConversationResult(null, ConversationNotObtainedReason.ConversationUnderThreadContention);
+            return new FetchConversationResult(null, ConversationContextStatus.ConversationUnderThreadContention);
 
         try
         {
+            if (skipCache is false && Cache is IConversationStoreCache cache && cache.TryGetConversationContext(conversationId, out var convo))
+                return new(convo, ConversationContextStatus.ConversationWasObtained);
+
             var cc = (await context.Database
                                    .GetDbConnection()
                                    .QueryFirstOrDefaultAsync<TContextModel>(
@@ -66,12 +67,12 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
 
             //await context.Set<TContextModel>().FirstOrDefaultAsync(x => x.ConversationId == conversationId);
             if (cc is null)
-                return new FetchConversationResult(null, ConversationNotObtainedReason.ConversationNotFound);
+                return new FetchConversationResult(null, ConversationContextStatus.ConversationNotFound);
             else
             {
                 var entry = context.Entry(cc);
                 Debug.Assert(entry is not null);
-                return new FetchConversationResult(cc?.Unpack(), ConversationNotObtainedReason.ConversationWasObtained);
+                return new FetchConversationResult(cc?.Unpack(), ConversationContextStatus.ConversationWasObtained);
             }
         }
         finally
@@ -85,6 +86,8 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
         var sem = await KeyChain.WaitForSemaphore(conversationId);
         try
         {
+            Cache?.RemoveConversationContext(conversationId);
+
             var connection = context.Database.GetDbConnection();
 
             using var trans = await connection.BeginTransactionAsync();
@@ -108,6 +111,7 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
         var sem = await KeyChain.WaitForSemaphore(convo.ConversationId);
         try
         {
+            Cache?.InsertConversationContext(convo);
             var convoId = convo.ConversationId;
             await UpdateHandler.Invoke(convo, convoId, context, entityFactory);
         }
@@ -116,7 +120,9 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
             sem.Release();
         }
     }
+
+    public IConversationStoreCache? Cache { get; } = cache;
 }
 
-public sealed class EntityFrameworkConversationStore(DbContext context) 
-    : EntityFrameworkConversationStore<ConversationContextPacked, long>(context, ConversationContextPacked.Pack, ConversationContextPacked.UpdateHandler);
+public sealed class EntityFrameworkConversationStore(DbContext context, IConversationStoreCache? cache = null) 
+    : EntityFrameworkConversationStore<ConversationContextPacked, long>(context, cache, ConversationContextPacked.Pack, ConversationContextPacked.UpdateHandler);
