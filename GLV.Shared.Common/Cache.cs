@@ -10,9 +10,9 @@ namespace GLV.Shared.Common;
 
 public class Cache<TKey, TCachedItem> where TKey : notnull
 {
-    private readonly Func<TKey, TCachedItem, ValueTask<bool>>? IsItemValidChecker;
+    private readonly Func<TKey, TCachedItem?, ValueTask<bool>>? IsItemValidChecker;
 
-    public Cache(Func<TKey, TCachedItem, ValueTask<bool>>? isItemValidChecker = null, IEqualityComparer<TKey>? equalityComparer = null)
+    public Cache(Func<TKey, TCachedItem?, ValueTask<bool>>? isItemValidChecker = null, IEqualityComparer<TKey>? equalityComparer = null)
     {
         IsItemValidChecker = isItemValidChecker;
         cachedItems = new(equalityComparer ?? EqualityComparer<TKey>.Default);
@@ -21,7 +21,7 @@ public class Cache<TKey, TCachedItem> where TKey : notnull
             BackgroundTaskStore.Add(Task.Run(RunCleanup));
     }
 
-    private readonly Dictionary<TKey, TCachedItem> cachedItems;
+    private readonly Dictionary<TKey, TCachedItem?> cachedItems;
 
     private async Task RunCleanup()
     {
@@ -38,12 +38,12 @@ public class Cache<TKey, TCachedItem> where TKey : notnull
         }
     }
 
-    public async ValueTask<Success<TCachedItem>> TryGetItem(TKey key) 
+    public async ValueTask<Success<TCachedItem?>> TryGetItem(TKey key) 
         => IsItemValidChecker is not null
-            ? cachedItems.TryGetValue(key, out TCachedItem? item) && await IsItemValidChecker(key, item) ? item : Success<TCachedItem>.Failure
-            : cachedItems.TryGetValue(key, out item) ? item : Success<TCachedItem>.Failure;
+            ? cachedItems.TryGetValue(key, out TCachedItem? item) && await IsItemValidChecker(key, item) ? item : Success<TCachedItem?>.Failure
+            : cachedItems.TryGetValue(key, out item) ? item : Success<TCachedItem?>.Failure;
 
-    public bool InsertItem(TKey key, TCachedItem item)
+    public bool InsertItem(TKey key, TCachedItem? item)
         => cachedItems.TryAdd(key, item);
 
     public bool RemoveItem(TKey key, out TCachedItem? item)

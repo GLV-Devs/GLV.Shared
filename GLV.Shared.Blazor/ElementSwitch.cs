@@ -10,5 +10,8 @@ public readonly record struct ElementSwitch(string WhenTrue, string WhenFalse, b
 
     public string StateString => IsActive ? WhenTrue : WhenFalse;
 
-    public static ElementSwitch DisplayStyle() => new("display: unset", "display: none", true);
+    public static class StyleTag
+    {
+        public static ElementSwitch IsVisible(bool startingValue = true) => new("display: revert-layer", "display: none", startingValue);
+    }
 }

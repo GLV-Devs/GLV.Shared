@@ -1,4 +1,5 @@
-﻿using GLV.Shared.Data;
+﻿using GLV.Shared.Common;
+using GLV.Shared.Data;
 using GLV.Shared.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,22 @@ namespace GLV.Shared.EntityFramework;
 
 public static class DbContextExtensions
 {
+    public static async ValueTask<TItem?> GetFromCacheOrContext<TKey, TItem>
+        (this DbContext context, Cache<TKey, TItem> cache, TKey key, bool insertIfFoundOnContext = true)
+        where TKey : notnull
+        where TItem : class
+    {
+        var result = await cache.TryGetItem(key);
+        if (result.TryGetResult(out var item))
+            return item;
+
+        item = await context.Set<TItem>().FindAsync(key);
+        if (insertIfFoundOnContext)
+            cache.InsertItem(key, item);
+
+        return item;
+    }
+
     public static async Task MigrateDatabase<TContext>(this IServiceProvider services) where TContext : DbContext
     {
         using var scope = services.CreateScope();

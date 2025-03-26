@@ -60,10 +60,12 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
                 return new(convo, ConversationContextStatus.ConversationWasObtained);
 
             var cc = (await context.Database
-                                   .GetDbConnection()
-                                   .QueryFirstOrDefaultAsync<TContextModel>(
-                                        $"select * from {GetContextModelTableName()} where ConversationId = '{conversationId}'")
-                                   );
+                                    .GetDbConnection()
+                                    .QueryFirstOrDefaultAsync<TContextModel>(
+                                        $"select * from {GetContextModelTableName()} where ConversationId = '{conversationId}'",
+                                        commandTimeout: 120
+                                    )
+                    );
 
             //await context.Set<TContextModel>().FirstOrDefaultAsync(x => x.ConversationId == conversationId);
             if (cc is null)
@@ -91,7 +93,10 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
             var connection = context.Database.GetDbConnection();
 
             using var trans = await connection.BeginTransactionAsync();
-            var rows = await connection.ExecuteAsync($"delete from {GetContextModelTableName()} where ConversationId = '{conversationId}'");
+            var rows = await connection.ExecuteAsync(
+                $"delete from {GetContextModelTableName()} where ConversationId = '{conversationId}'", 
+                commandTimeout: 120
+            );
 
             Debug.Assert(rows >= 0);
             if (AllowDeletesToAffectMultipleRows is false && rows > 1)

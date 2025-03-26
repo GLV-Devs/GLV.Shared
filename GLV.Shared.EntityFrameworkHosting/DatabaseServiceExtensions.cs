@@ -52,7 +52,7 @@ public static class DatabaseServiceExtensions
                     if (string.IsNullOrWhiteSpace(mySqlMigrationsAssemblyName) is false)
                         o.MigrationsAssembly(mySqlMigrationsAssemblyName);
                     o.EnableRetryOnFailure(10);
-                    o.CommandTimeout(60);
+                    o.CommandTimeout(120);
                 }
             ));
         }

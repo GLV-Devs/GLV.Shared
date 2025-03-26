@@ -73,7 +73,7 @@ public static class BackgroundTaskStore
             if (task.IsCompleted)
                 try
                 {
-                    await task;
+                    await task.WaitAsync(ct);
                 }
                 catch (Exception e)
                 {

@@ -1,8 +1,33 @@
-﻿using GLV.Shared.Common;
+﻿using GLV.Shared.ChatBot.Converters;
+using GLV.Shared.Common;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace GLV.Shared.ChatBot;
+
+internal sealed class ActualContextData<T> : TypedContextData<T>
+{
+    [JsonPropertyOrder(0)]
+    public string AssemblyQualifiedDataTypeName => typeof(T).AssemblyQualifiedName!;
+}
+
+public abstract class TypedContextData<T> : ContextData
+{
+    internal TypedContextData() { }
+
+    [JsonPropertyOrder(1)]
+    public T? Value { get; set; }
+}
+
+public abstract class ContextData
+{
+    public static JsonConverter<ContextData> JsonConverter { get; } = new ContextDataJsonConverter();
+
+    internal ContextData() { }
+}
 
 /// <summary>
 /// Information regarding a conversation the bot is having with an user, service or another bot
@@ -10,11 +35,11 @@ namespace GLV.Shared.ChatBot;
 /// <remarks>
 /// When inheriting from this class, be mindful of serialization! Most <see cref="IConversationStore"/> implementations serialize the context to store it. Note that <see cref="Step"/> and <see cref="ActiveAction"/> need special care, as they are set to ignore since they have <see langword="private setter"/>s
 /// </remarks>
-public class ConversationContext(Guid conversationId, Dictionary<string, string>? data = null)
+public class ConversationContext(Guid conversationId, ContextDataSet? data = null)
 {
     public Guid ConversationId { get; private set; } = conversationId;
 
-    public Dictionary<string, string> Data { get; init; } = data ?? [];
+    public ContextDataSet Data { get; init; } = data ?? new();
 
     /// <summary>
     /// The step within <see cref="ActiveAction"/> the conversation is in

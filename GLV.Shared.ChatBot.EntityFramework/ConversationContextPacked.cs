@@ -35,6 +35,14 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
         return type;
     }
 
+    private readonly static JsonSerializerOptions JsonOptions = new();
+
+    static ConversationContextPacked()
+    {
+        JsonOptions.Converters.Add(ContextData.JsonConverter);
+        JsonOptions.Converters.Add(ContextDataSet.JsonConverter);
+    }
+
     public long Id { get; set; }
     public Guid ConversationId { get; set; }
     public long Step { get; set; }
@@ -46,7 +54,7 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
     public void Update(ConversationContext context)
     {
         var contextType = context.GetType();
-        var json = JsonSerializer.Serialize(context, contextType);
+        var json = JsonSerializer.Serialize(context, contextType, JsonOptions);
         RegisterType(contextType);
         ConversationId = context.ConversationId;
         Step = context.Step;
@@ -59,7 +67,7 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
     public static ConversationContextPacked Pack(ConversationContext context)
     {
         var contextType = context.GetType();
-        var json = JsonSerializer.Serialize(context, contextType);
+        var json = JsonSerializer.Serialize(context, contextType, JsonOptions);
         RegisterType(contextType);
         return new ConversationContextPacked()
         {
@@ -87,7 +95,7 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
         var conn = db.Database.GetDbConnection();
 
         var contextType = context.GetType();
-        var json = JsonSerializer.Serialize(context, contextType);
+        var json = JsonSerializer.Serialize(context, contextType, JsonOptions);
         RegisterType(contextType);
 
         int rows;
@@ -103,7 +111,8 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
                     AssemblyQualifiedContextTypeName = '{contextType.AssemblyQualifiedName}',
                     JsonData = '{json}'
                 where conversationId = '{convoId}';
-                """"
+                """",
+                commandTimeout: 120
             );
         }
         else
@@ -128,7 +137,8 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
                     '{contextType.AssemblyQualifiedName}',
                     '{json}'
                 );
-                """"
+                """",
+                commandTimeout: 120
             );
         }
     }
@@ -146,7 +156,7 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
         Debug.Assert(string.IsNullOrWhiteSpace(JsonData) is false);
 
         var contextType = FetchType(AssemblyQualifiedContextTypeName);
-        var context = (ConversationContext)JsonSerializer.Deserialize(JsonData, contextType)!;
+        var context = (ConversationContext)JsonSerializer.Deserialize(JsonData, contextType, JsonOptions)!;
         context.SetState(Step, ActiveAction);
         return context;
     }
