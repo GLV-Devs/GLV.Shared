@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using GLV.Shared.Data.JsonConverters;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
@@ -6,6 +7,7 @@ using System.Text.Json.Serialization;
 namespace GLV.Shared.Data.Identifiers;
 
 [StructLayout(LayoutKind.Explicit)]
+[JsonConverter(typeof(SnowflakeConverter))]
 public readonly struct Snowflake : IEquatable<Snowflake>, IComparable<Snowflake>, IParsable<Snowflake>, IFormattable
 {
     private static readonly long ReferenceStampUtc;
