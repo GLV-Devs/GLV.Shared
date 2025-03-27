@@ -8,8 +8,15 @@ internal sealed class ContextDataSetJsonConverter : JsonConverter<ContextDataSet
 {
     public override ContextDataSet? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        var d = JsonSerializer.Deserialize<Dictionary<string, ContextData>>(ref reader, options);
-        return d is null ? null : new(d);
+        try
+        {
+            var d = JsonSerializer.Deserialize<Dictionary<string, ContextData>>(ref reader, options);
+            return d is null ? null : new(d);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public override void Write(Utf8JsonWriter writer, ContextDataSet value, JsonSerializerOptions options)
