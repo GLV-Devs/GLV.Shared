@@ -50,7 +50,7 @@ internal sealed class ContextDataJsonConverter : JsonConverter<ContextData>
 
         if (reader.Read() is false
          || reader.TokenType != JsonTokenType.PropertyName
-         || string.Equals(reader.GetString(), nameof(ActualContextData<>.AssemblyQualifiedDataTypeName), StringComparison.OrdinalIgnoreCase) is false
+         || string.Equals(reader.GetString(), nameof(ActualContextData<string>.AssemblyQualifiedDataTypeName), StringComparison.OrdinalIgnoreCase) is false
          || reader.Read() is false)
             throw new JsonException("Invalid ContextData json");
         
