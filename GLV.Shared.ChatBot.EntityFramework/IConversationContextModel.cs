@@ -8,7 +8,7 @@ public interface IConversationContextModel<TKey>
     public Guid ConversationId { get; set; }
     public long Step { get; set; }
     public string? ActiveAction { get; set; }
-    public ConversationContext Unpack();
+    public ConversationContext? Unpack();
     public void Update(ConversationContext context);
 
     public static async Task PerformUpdateQueryThroughEntityFramework<TContextModel>(

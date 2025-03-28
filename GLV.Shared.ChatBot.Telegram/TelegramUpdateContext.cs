@@ -50,7 +50,6 @@ public class TelegramUpdateContext(
         );
 
     public override bool IsDirectMessage { get; }
-        = update.Message is null
-        ? false
-        : update.Message.Chat.Type is ChatType.Private;
+        = update.Message is not null && update.Message.Chat.Type is ChatType.Private
+       || update.CallbackQuery is not null && update.CallbackQuery.Message is not null && update.CallbackQuery.Message.Chat.Type is ChatType.Private;
 }

@@ -35,14 +35,6 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
         return type;
     }
 
-    private readonly static JsonSerializerOptions JsonOptions = new();
-
-    static ConversationContextPacked()
-    {
-        JsonOptions.Converters.Add(ContextData.JsonConverter);
-        JsonOptions.Converters.Add(ContextDataSet.JsonConverter);
-    }
-
     public long Id { get; set; }
     public Guid ConversationId { get; set; }
     public long Step { get; set; }
@@ -54,7 +46,7 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
     public void Update(ConversationContext context)
     {
         var contextType = context.GetType();
-        var json = JsonSerializer.Serialize(context, contextType, JsonOptions);
+        var json = JsonSerializer.Serialize(context, contextType);
         RegisterType(contextType);
         ConversationId = context.ConversationId;
         Step = context.Step;
@@ -67,7 +59,7 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
     public static ConversationContextPacked Pack(ConversationContext context)
     {
         var contextType = context.GetType();
-        var json = JsonSerializer.Serialize(context, contextType, JsonOptions);
+        var json = JsonSerializer.Serialize(context, contextType);
         RegisterType(contextType);
         return new ConversationContextPacked()
         {
@@ -95,7 +87,7 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
         var conn = db.Database.GetDbConnection();
 
         var contextType = context.GetType();
-        var json = JsonSerializer.Serialize(context, contextType, JsonOptions);
+        var json = JsonSerializer.Serialize(context, contextType);
         RegisterType(contextType);
 
         int rows;
@@ -150,14 +142,23 @@ public sealed class ConversationContextPacked : IConversationContextModel<long>,
         return tabname;
     }
 
-    public ConversationContext Unpack()
+    public ConversationContext? Unpack()
     {
         Debug.Assert(string.IsNullOrWhiteSpace(AssemblyQualifiedContextTypeName) is false);
         Debug.Assert(string.IsNullOrWhiteSpace(JsonData) is false);
 
         var contextType = FetchType(AssemblyQualifiedContextTypeName);
-        var context = (ConversationContext)JsonSerializer.Deserialize(JsonData, contextType, JsonOptions)!;
-        context.SetState(Step, ActiveAction);
+        ConversationContext? context;
+        try
+        {
+            context = (ConversationContext)JsonSerializer.Deserialize(JsonData, contextType)!;
+        }
+        catch (JsonException)
+        {
+            context = null;
+        }
+
+        context?.SetState(Step, ActiveAction);
         return context;
     }
 

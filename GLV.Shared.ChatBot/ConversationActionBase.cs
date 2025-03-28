@@ -1,6 +1,8 @@
-﻿using GLV.Shared.ChatBot.Pipeline;
+﻿using GLV.Shared.ChatBot.Internal;
+using GLV.Shared.ChatBot.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -147,6 +149,7 @@ public abstract class ConversationActionBase
         ChatBotManager manager, 
         IScopedChatBotClient client,
         PipelineHandlerCollection pipeline,
+        FrozenDictionary<long, StepMethodInfo>? steps,
         string? actionName
     )
     {
@@ -168,6 +171,13 @@ public abstract class ConversationActionBase
         Pipeline = pipeline;
         try
         {
+            if (steps?.TryGetValue(Context.Step, out var step) is true)
+            {
+                var result = await step.Invoke(this);
+                if (result.ExecutePerformActions is false)
+                    return;
+            }
+
             await PerformAsync(update);
         }
         finally

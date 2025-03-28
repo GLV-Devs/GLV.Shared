@@ -74,7 +74,10 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
             {
                 var entry = context.Entry(cc);
                 Debug.Assert(entry is not null);
-                return new FetchConversationResult(cc?.Unpack(), ConversationContextStatus.ConversationWasObtained);
+                var unpacked = cc?.Unpack();
+                return unpacked is not null
+                    ? new FetchConversationResult(unpacked, ConversationContextStatus.ConversationWasObtained)
+                    : new FetchConversationResult(unpacked, ConversationContextStatus.ConversationCorrupted);
             }
         }
         finally
@@ -118,7 +121,7 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
         {
             Cache?.InsertConversationContext(convo);
             var convoId = convo.ConversationId;
-            await UpdateHandler.Invoke(convo, convoId, context, entityFactory);
+            await UpdateHandler.Invoke(convo, convoId, context, EntityFactory);
         }
         finally
         {

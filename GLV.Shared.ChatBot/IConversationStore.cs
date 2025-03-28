@@ -16,7 +16,8 @@ public interface IConversationStore
         ConversationWasObtained,
         ConversationNotFound,
         ConversationUnderThreadContention,
-        ConversationObtainedFromCache
+        ConversationObtainedFromCache,
+        ConversationCorrupted
     }
 
     public readonly record struct FetchConversationResult(ConversationContext? Context, ConversationContextStatus Status);

@@ -65,13 +65,26 @@ internal sealed class ContextDataJsonConverter : JsonConverter<ContextData>
             throw new JsonException("Could not obtain a valid assembly qualified value type name for ContextData");
 
         var type = FetchType(asmTypeName);
-        (typeArray ??= new Type[1])[0] = type;
+        typeArray ??= new Type[1];
+        typeArray[0] = type;
 
-        return (ContextData?)JsonSerializer.Deserialize(ref reader, typeof(ActualContextData<>).MakeGenericType(typeArray), options);
+        if (reader.Read() is false
+         || reader.TokenType != JsonTokenType.PropertyName
+         || string.Equals(reader.GetString(), nameof(ActualContextData<string>.Buffer.Data), StringComparison.OrdinalIgnoreCase) is false
+         || reader.Read() is false)
+            throw new JsonException("Invalid ContextData json");
+
+        var contextType = typeof(ActualContextData<>).MakeGenericType(typeArray);
+
+        var data = (ContextData?)JsonSerializer.Deserialize(ref reader, contextType, options);
+
+        if (reader.Read() is false
+         || reader.TokenType != JsonTokenType.EndObject)
+            throw new JsonException("Invalid ContextData json");
+
+        return data;
     }
 
     public override void Write(Utf8JsonWriter writer, ContextData value, JsonSerializerOptions options)
-    {
-        JsonSerializer.Serialize(writer, value, value.GetType(), options);
-    }
+        => value.SerializeBuffer(writer, options);
 }

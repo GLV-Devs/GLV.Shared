@@ -1,11 +1,14 @@
-﻿using GLV.Shared.ChatBot.Pipeline;
+﻿using GLV.Shared.ChatBot.Internal;
+using GLV.Shared.ChatBot.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text;
+using static GLV.Shared.ChatBot.IConversationStore;
 
 namespace GLV.Shared.ChatBot;
 
@@ -54,15 +57,17 @@ public partial class ChatBotManager
             ? PipelineHandlerCollection.Empty
             : new PipelineHandlerCollection(globalPipelineHandlers, serviceCollection, null);
 
+        if (defaultAction.ConversationAction.IsAssignableTo(typeof(ConversationActionBase)) is false)
+            throw new ArgumentException($"The type {defaultAction.ConversationAction.Name} submitted as default action is not a sub-class of ConversationActionBase", nameof(defaultAction));
+
         DefaultAction = new ConversationActionInformation(
-            defaultAction.ConversationAction.IsAssignableTo(typeof(ConversationActionBase))
-            ? defaultAction.ConversationAction
-            : throw new ArgumentException($"The type {defaultAction.ConversationAction.Name} submitted as default action is not a sub-class of ConversationActionBase", nameof(defaultAction)),
+            defaultAction.ConversationAction,
             null,
             null,
             null,
             defaultAction.LocalPipelineHandlers,
-            serviceCollection
+            serviceCollection,
+            StepScanner(defaultAction.ConversationAction)
         );
 
         Actions = actions.Select(ActionProcessor).ToFrozenDictionary();
@@ -100,9 +105,33 @@ public partial class ChatBotManager
                         x.CommandTrigger,
                         x.CommandDescription,
                         x.LocalPipelineHandlers,
-                        serviceCollection
+                        serviceCollection,
+                        StepScanner(x.ConversationAction)
                     )
                 );
+        }
+    }
+
+    private static IEnumerable<KeyValuePair<long, StepMethodInfo>> StepScanner(Type type)
+    {
+        HashSet<int> occupiedSteps = [];
+        foreach (var (method, attribute) in type.GetMethods()
+                                                .Select(x => (x, x.GetCustomAttribute<ConversationStepAttribute>()!))
+                                                .Where(x => x.Item2 is not null))
+        {
+            if (method.IsPrivate 
+             || method.IsStatic 
+             || method.GetParameters().Length != 0 
+             || method.ContainsGenericParameters 
+             || method.ReturnType != typeof(Task<StepMethodReturn>)
+            ) 
+                throw new InvalidOperationException($"ConversationActionType {type} has a Method decorated with ConversationStepAttribute that is not valid. The method must be a parameterless instance method that is not generic or private and returns a non null {nameof(Task<StepMethodReturn>)}");
+            
+            var step = attribute.Step;
+            if (occupiedSteps.Add(step) is false)
+                throw new InvalidOperationException($"ConversationActionType {type} has more than one Method decorated with ConversationStepAttribute that is assigned the Step {step}");
+
+            yield return new(step, new(method));
         }
     }
 
@@ -239,13 +268,13 @@ public partial class ChatBotManager
             while (true)
             {
                 var fetchResult = await store.FetchConversation(update.ConversationId);
-                if (fetchResult.Status is IConversationStore.ConversationContextStatus.ConversationNotFound)
+                if (fetchResult.Status is ConversationContextStatus.ConversationNotFound or ConversationContextStatus.ConversationCorrupted)
                 {
                     var context = await CreateContext(update);
                     await store.SaveChanges(context);
                     return context;
                 }
-                else if (fetchResult.Status is IConversationStore.ConversationContextStatus.ConversationUnderThreadContention)
+                else if (fetchResult.Status is ConversationContextStatus.ConversationUnderThreadContention)
                 {
                     Debug.WriteLine($"Conversation of id '{update.ConversationId}' is under contention");
                     var ta = OnConversationContextThreadContention?.Invoke(update, attempt++);
@@ -266,7 +295,7 @@ public partial class ChatBotManager
                 else
                 {
                     Debug.Assert(
-                        fetchResult.Status is IConversationStore.ConversationContextStatus.ConversationWasObtained,
+                        fetchResult.Status is ConversationContextStatus.ConversationWasObtained,
                         "Reached a point in the code where the only possible NotObtainedReason was that it was obtained, but it did not equal this value"
                     );
                     Debug.Assert(
@@ -355,6 +384,7 @@ public partial class ChatBotManager
                         this, 
                         client,
                         actionInfo.Pipeline,
+                        actionInfo.StepDictionary,
                         actionInfo.ActionName
                     );
                 }

@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace GLV.Shared.ChatBot;
 
+[JsonConverter(typeof(ContextDataSetJsonConverter))]
 public sealed class ContextDataSet : IReadOnlyCollection<KeyValuePair<string, ContextData>>
 {
     public static JsonConverter<ContextDataSet> JsonConverter { get; } = new ContextDataSetJsonConverter();

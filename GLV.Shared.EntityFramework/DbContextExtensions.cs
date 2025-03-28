@@ -10,9 +10,9 @@ namespace GLV.Shared.EntityFramework;
 
 public static class DbContextExtensions
 {
-    public static async ValueTask<TItem?> GetFromCacheOrContext<TKey, TItem>
-        (this DbContext context, Cache<TKey, TItem> cache, TKey key, Expression<Func<TItem, bool>> queryExpression, bool insertIfFoundOnContext = true)
-        where TKey : notnull
+    public static async ValueTask<TItem?> GetFromCacheOrContext<TItem, TQueryKey>
+        (this DbContext context, Cache<TQueryKey, TItem> cache, TQueryKey key, Expression<Func<TItem, bool>> queryExpression, bool insertIfFoundOnContext = true)
+        where TQueryKey : notnull
         where TItem : class
     {
         var result = await cache.TryGetItem(key);
@@ -28,8 +28,8 @@ public static class DbContextExtensions
 
     public static async ValueTask<TItem?> GetFromCacheOrContext<TKey, TItem>
         (this DbContext context, Cache<TKey, TItem> cache, TKey key, bool insertIfFoundOnContext = true)
-        where TKey : notnull
-        where TItem : class
+        where TKey : unmanaged
+        where TItem : class, IDbModel<TItem, TKey>
     {
         var result = await cache.TryGetItem(key);
         if (result.TryGetResult(out var item))

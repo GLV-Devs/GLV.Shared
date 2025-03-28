@@ -2,6 +2,12 @@
 
 namespace GLV.Shared.ChatBot;
 
+[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+public class ConversationStepAttribute(int Step) : Attribute
+{
+    public int Step { get; } = Step;
+}
+
 [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = true)]
 public class ConversationActionPipelineHandlerAttribute(Type pipelineHandler) : Attribute
 {

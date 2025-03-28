@@ -10,6 +10,14 @@ namespace GLV.Shared.ChatBot;
 
 internal sealed class ActualContextData<T> : TypedContextData<T>
 {
+    public readonly record struct ValueBuffer(T? Value);
+    public readonly record struct Buffer(string AssemblyQualifiedDataTypeName, ValueBuffer Data);
+
+    internal override void SerializeBuffer(Utf8JsonWriter writer, JsonSerializerOptions options)
+    {
+        JsonSerializer.Serialize(writer, new Buffer(AssemblyQualifiedDataTypeName, new(Value)), options);
+    }
+
     [JsonPropertyOrder(0)]
     public string AssemblyQualifiedDataTypeName => typeof(T).AssemblyQualifiedName!;
 }
@@ -22,11 +30,14 @@ public abstract class TypedContextData<T> : ContextData
     public T? Value { get; set; }
 }
 
+[JsonConverter(typeof(ContextDataJsonConverter))]
 public abstract class ContextData
 {
-    public static JsonConverter<ContextData> JsonConverter { get; } = new ContextDataJsonConverter();
-
     internal ContextData() { }
+
+    internal abstract void SerializeBuffer(Utf8JsonWriter writer, JsonSerializerOptions options);
+
+    public static JsonConverter<ContextData> JsonConverter { get; } = new ContextDataJsonConverter();
 }
 
 /// <summary>

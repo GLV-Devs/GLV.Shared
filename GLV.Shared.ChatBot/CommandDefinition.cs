@@ -1,5 +1,8 @@
-﻿using GLV.Shared.ChatBot.Pipeline;
+﻿using GLV.Shared.ChatBot.Internal;
+using GLV.Shared.ChatBot.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Frozen;
+using System.Reflection;
 
 namespace GLV.Shared.ChatBot;
 
@@ -11,7 +14,8 @@ public sealed class ConversationActionInformation
         string? commandTrigger,
         string? commandDescription,
         IEnumerable<Type>? localPipelineHandlers,
-        IServiceCollection services
+        IServiceCollection services,
+        IEnumerable<KeyValuePair<long, StepMethodInfo>>? steps
     )
     {
         ConversationAction = conversationAction;
@@ -22,8 +26,11 @@ public sealed class ConversationActionInformation
         Pipeline = localPipelineHandlers is null || localPipelineHandlers.Any() is false
             ? PipelineHandlerCollection.Empty
             : new PipelineHandlerCollection(localPipelineHandlers, services, ActionName);
+
+        StepDictionary = steps?.ToFrozenDictionary();
     }
 
+    public FrozenDictionary<long, StepMethodInfo>? StepDictionary { get; }
     public Type ConversationAction { get; }
     public string? ActionName { get; }
     public string? CommandTrigger { get; }
