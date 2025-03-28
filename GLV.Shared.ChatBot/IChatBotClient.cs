@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace GLV.Shared.ChatBot;
@@ -6,6 +7,8 @@ namespace GLV.Shared.ChatBot;
 public interface IScopedChatBotClient : IChatBotClient
 {
     public Guid ScopedConversation { get; }
+
+    public IChatBotClient ParentClient { get; }
 
     public Task<long> SendMessage(string? text, Keyboard? keyboard = null,
         long? respondingToMessageId = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default)
@@ -40,16 +43,23 @@ public interface IScopedChatBotClient : IChatBotClient
 
     public Task UnbanUser(long userId, string? reason = null)
         => UnbanUser(ScopedConversation, userId, reason);
+
+    public ScopedBotStatusSet ScopedStatusCollection => new(StatusCollection, ScopedConversation);
 }
 
 public interface IChatBotClient
 {
     public string BotId { get; }
+
+    public string BotMention { get; }
+
     public object UnderlyingBotClientObject { get; }
 
     public string Platform { get; }
 
     public SupportedFeatures SupportedFeatures { get; }
+
+    public BotStatusSet StatusCollection { get; }
 
     public bool IsValidBotCommand(string text, [NotNullWhen(true)] out string? commandName);
     public Task SetBotCommands(IEnumerable<ConversationActionInformation> commands);
@@ -61,6 +71,8 @@ public interface IChatBotClient
     public Task DeleteMessage(Guid conversationId, long messageId);
 
     public Task KickUser(Guid conversationId, long userId, string? reason = null);
+
+    public bool TryGetBotHandle([NotNullWhen(true)] out string? handle);
 
     /// <summary>
     /// Attempts to ban the user from the conversation

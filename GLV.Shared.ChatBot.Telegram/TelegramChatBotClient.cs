@@ -24,7 +24,7 @@ public class TelegramChatBotClient : IChatBotClient
         ChatBotManager manager,
         Func<Update, ChatBotManager, Task>? updateHandler = null,
         Func<Update, IChatBotClient, Guid>? conversationIdFactory = null
-)
+    )
     {
         ConversationIdFactory = conversationIdFactory;
         UpdateHandler = updateHandler;
@@ -32,6 +32,7 @@ public class TelegramChatBotClient : IChatBotClient
         BotClient = client ?? throw new ArgumentNullException(nameof(client));
         BotId = botId;
         BotClient.OnUpdate += BotClient_OnUpdate;
+        StatusCollection = TelegramBotStatuses.CreateStatusCollection(this);
     }
 
     private async Task BotClient_OnUpdate(WTelegram.Types.Update arg)
@@ -62,14 +63,28 @@ public class TelegramChatBotClient : IChatBotClient
     public Func<Update, IChatBotClient, Guid>? ConversationIdFactory { get; }
     public Func<Update, ChatBotManager, Task>? UpdateHandler { get; }
 
-    private Regex CheckCommandRegex;
+    private Regex? CheckCommandRegex;
 
     public bool AllowMultipleAttachmentsThroughMultipleMessages { get; init; }
 
+    [field: AllowNull]
     public string BotHandle 
     {
         get => field ?? throw new InvalidOperationException("Cannot obtain the handle of this bot before it has been obtained via PrepareBot");
         private set; 
+    }
+
+    public bool TryGetBotHandle([NotNullWhen(true)] out string? handle)
+    {
+        handle = BotHandle;
+        return true;
+    }
+
+    [field: AllowNull]
+    public string BotMention
+    {
+        get => field ?? throw new InvalidOperationException("Cannot obtain the Referrable Username of this bot before it has been obtained via PrepareBot");
+        private set;
     }
 
     public async Task PrepareBot()
@@ -77,6 +92,7 @@ public class TelegramChatBotClient : IChatBotClient
         var me = await BotClient.GetMe();
         BotHandle = me.Username!;
         CheckCommandRegex = TelegramRegexes.CheckCommandRegex(BotHandle);
+        BotMention = $"@{me.Username}";
         Debug.Assert(CheckCommandRegex != null);
     }
 
@@ -111,6 +127,7 @@ public class TelegramChatBotClient : IChatBotClient
 
     public bool IsValidBotCommand(string text, [NotNullWhen(true)] out string? cmd)
     {
+        Debug.Assert(CheckCommandRegex is not null);
         var match = CheckCommandRegex.Match(text);
         if (match is not null && match.Success && match.Groups.TryGetValue("cmd", out var grp))
         {
@@ -314,6 +331,7 @@ public class TelegramChatBotClient : IChatBotClient
         return true;
     }
 
+    [field: AllowNull]
     public SupportedFeatures SupportedFeatures => field ??= new()
     {
         InlineKeyboards = true,
@@ -355,4 +373,34 @@ public class TelegramChatBotClient : IChatBotClient
 
     public Task UnbanUser(Guid conversationId, long userId, string? reason = null)
         => BotClient.UnbanChatMember(conversationId.UnpackTelegramConversationId(), userId, true);
+
+    public BotStatusSet StatusCollection { get; }
+}
+
+internal static class TelegramBotStatuses
+{
+    public static BotStatusSet CreateStatusCollection(TelegramChatBotClient client) => new BotStatusSet()
+    {
+        Typing = new TelegramDefaultBotStatus(client, ChatAction.Typing),
+        SendingFile = new TelegramDefaultBotStatus(client, ChatAction.UploadDocument),
+        SendingImage = new TelegramDefaultBotStatus(client, ChatAction.UploadPhoto),
+        SendingVideo = new TelegramDefaultBotStatus(client, ChatAction.UploadVideo),
+        SendingVoiceMessage = new TelegramDefaultBotStatus(client, ChatAction.UploadVoice),
+    };
+
+    public class TelegramDefaultBotStatus(TelegramChatBotClient client, ChatAction action) : BotStatus(client)
+    {
+        private sealed class Resetter(TelegramChatBotClient client, long conversationId) : IDisposable
+        {
+            public void Dispose()
+                => client.BotClient.SendChatAction(conversationId, 0).ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        public override async Task<IDisposable> SetStatus(Guid conversationId)
+        {
+            var chatId = conversationId.UnpackTelegramConversationId();
+            await client.BotClient.SendChatAction(chatId, action);
+            return new Resetter(client, chatId);
+        }
+    }
 }

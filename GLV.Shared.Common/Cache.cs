@@ -38,10 +38,10 @@ public class Cache<TKey, TCachedItem> where TKey : notnull
         }
     }
 
-    public async ValueTask<Success<TCachedItem?>> TryGetItem(TKey key) 
+    public async ValueTask<NullableSuccess<TCachedItem?>> TryGetItem(TKey key) 
         => IsItemValidChecker is not null
-            ? cachedItems.TryGetValue(key, out TCachedItem? item) && await IsItemValidChecker(key, item) ? item : Success<TCachedItem?>.Failure
-            : cachedItems.TryGetValue(key, out item) ? item : Success<TCachedItem?>.Failure;
+            ? cachedItems.TryGetValue(key, out TCachedItem? item) && await IsItemValidChecker(key, item) ? item : NullableSuccess<TCachedItem?>.Failure
+            : cachedItems.TryGetValue(key, out item) ? item : NullableSuccess<TCachedItem?>.Failure;
 
     public bool InsertItem(TKey key, TCachedItem? item)
         => cachedItems.TryAdd(key, item);

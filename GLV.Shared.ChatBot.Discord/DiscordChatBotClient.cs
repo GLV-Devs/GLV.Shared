@@ -26,6 +26,7 @@ public abstract class DiscordChatBotClient : IChatBotClient
         CommandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
         BotId = botId;
         UpdateHandler = updateHandler;
+        StatusCollection = DiscordBotStatuses.CreateStatusCollection(this);
     }
 
     protected Task SubmitUpdate(DiscordUpdateContext context)
@@ -62,6 +63,13 @@ public abstract class DiscordChatBotClient : IChatBotClient
         private set;
     }
 
+    [field: AllowNull]
+    public string BotMention
+    {
+        get => field ?? throw new InvalidOperationException("Cannot obtain the Referrable Username of this bot before it has been obtained via PrepareBot");
+        private set;
+    }
+
     private ulong? ___botId;
     public ulong DiscordBotId
     {
@@ -69,11 +77,18 @@ public abstract class DiscordChatBotClient : IChatBotClient
         private set => ___botId = value;
     }
 
+    public bool TryGetBotHandle([NotNullWhen(true)] out string? handle)
+    {
+        handle = BotHandle;
+        return true;
+    }
+
     public virtual Task PrepareBot()
     {
         var me = BotClient.CurrentUser;
         BotHandle = me.Username!;
         DiscordBotId = me.Id!;
+        BotMention = BotClient.CurrentUser.Mention;
         return Task.CompletedTask;
     }
 
@@ -305,5 +320,30 @@ public abstract class DiscordChatBotClient : IChatBotClient
         var guild = await BotClient.GetGuildAsync(guildId);
         var user = await guild.GetUserAsync((ulong)userId);
         await guild.RemoveBanAsync(user);
+    }
+
+    public BotStatusSet StatusCollection { get; }
+}
+
+internal static class DiscordBotStatuses
+{
+    public static BotStatusSet CreateStatusCollection(DiscordChatBotClient client)
+        => new()
+        {
+            Typing = new DiscordDefaultBotStatus(client),
+            SendingFile = null,
+            SendingImage = null,
+            SendingVideo = null,
+            SendingVoiceMessage = null
+        };
+
+    public class DiscordDefaultBotStatus(DiscordChatBotClient client) : BotStatus(client)
+    {
+        public override async Task<IDisposable> SetStatus(Guid conversationId)
+        {
+            conversationId.UnpackDiscordConversationId(out var guild, out var channel);
+            var ch = (ITextChannel)await client.BotClient.GetChannelAsync(channel);
+            return ch.EnterTypingState();
+        }
     }
 }
