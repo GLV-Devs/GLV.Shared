@@ -65,8 +65,10 @@ public interface IChatBotClient
     public Task SetBotCommands(IEnumerable<ConversationActionInformation> commands);
     public Task SetBotDescription(string name, string? shortDescription = null, string? description = null, CultureInfo? culture = null);
     public Task AnswerKeyboardResponse(Guid conversationId, KeyboardResponse keyboardResponse, string? alertMessage, bool showAlert = false, int cacheTime = 0);
-    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard = null,
-        long? respondingToMessageId = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default);
+    public Task<long> SendMessage(Guid conversationId, string? text, Keyboard? keyboard = null, long? respondingToMessageId = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default);
+
+    public Task<long?> RespondToUpdate(UpdateContext context, string? text, Keyboard? keyboard = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default);
+
     public Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard = null, MessageOptions options = default);
     public Task DeleteMessage(Guid conversationId, long messageId);
 

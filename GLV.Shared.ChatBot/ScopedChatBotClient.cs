@@ -80,4 +80,7 @@ public class ScopedChatBotClient(Guid scopedConversation, IChatBotClient client)
 
     public bool TryGetBotHandle([NotNullWhen(true)] out string? handle)
         => ParentClient.TryGetBotHandle(out handle);
+
+    public Task<long?> RespondToUpdate(UpdateContext context, string? text, Keyboard? keyboard = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default)
+        => ParentClient.RespondToUpdate(context, text, keyboard, attachments, options);
 }

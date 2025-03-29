@@ -25,13 +25,7 @@ public class DiscordMessageReceivedUpdateContext : DiscordUpdateContext
             MessageObject.Content,
             (long)MessageObject.Id,
             refmsid,
-            MessageObject.Author is not null
-            ? new UserInfo(
-                MessageObject.Author.Username,
-                MessageObject.Author.GlobalName,
-                MessageObject.Author.PackDiscordUserId()
-            )
-            : null,
+            MessageObject.Author?.GetUserInfo(),
             MessageObject.Attachments?.Count is > 0
         );
 

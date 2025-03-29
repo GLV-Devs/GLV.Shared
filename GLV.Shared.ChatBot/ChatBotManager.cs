@@ -1,5 +1,6 @@
 ﻿using GLV.Shared.ChatBot.Internal;
 using GLV.Shared.ChatBot.Pipeline;
+using GLV.Shared.Common;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Frozen;
@@ -324,17 +325,17 @@ public partial class ChatBotManager
             return composer.Invoke(dict);
 
         StringBuilder sb = new(100 * dict.Count);
-        sb.AppendLine("The commands available to me are: \n");
+        sb.AppendLine("The commands available to me are:");
         foreach (var (k, v) in dict)
         {
             sb.Append("\t - ").Append(k);
             if (string.IsNullOrWhiteSpace(v.CommandDescription) is false)
-                sb.Append(" : ").Append(v.CommandDescription);
+                sb.Append(": ").Append(v.CommandDescription);
 
-            sb.AppendLine();
+            sb.AppendLine().AppendLine();
         }
 
-        sb.AppendLine("\nIf you want me to send a picture of Ari, just send 'Ari' to the chat! (without the quotes)");
+        sb.AppendLine(SoftwareInfo.DevDiegoGInfo.GetWatermark());
 
         return sb.ToString();
     }

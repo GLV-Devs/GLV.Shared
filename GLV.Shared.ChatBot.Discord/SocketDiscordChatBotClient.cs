@@ -12,14 +12,12 @@ public class SocketDiscordChatBotClient(
     string botId,
     DiscordSocketClient client,
     ChatBotManager manager,
-    CommandService commandService,
     DiscordBotCredentials credentials,
     Func<DiscordUpdateContext, ChatBotManager, Task>? updateHandler = null
 ) : DiscordChatBotClient(
     botId,
     client,
     manager,
-    commandService,
     updateHandler
 )
 {
@@ -80,11 +78,11 @@ public class SocketDiscordChatBotClient(
         //SocketClient.InviteCreated += React_InviteCreated;
         //SocketClient.InviteDeleted += React_InviteDeleted;
         //SocketClient.InteractionCreated += React_InteractionCreated;
-        //SocketClient.ButtonExecuted += React_ButtonExecuted;
+        SocketClient.ButtonExecuted += React_ButtonExecuted;
         //SocketClient.SelectMenuExecuted += React_SelectMenuExecuted;
-        //SocketClient.SlashCommandExecuted += React_SlashCommandExecuted;
-        //SocketClient.UserCommandExecuted += React_UserCommandExecuted;
-        //SocketClient.MessageCommandExecuted += React_MessageCommandExecuted;
+        SocketClient.SlashCommandExecuted += React_SlashCommandExecuted;
+        SocketClient.UserCommandExecuted += React_UserCommandExecuted;
+        SocketClient.MessageCommandExecuted += React_MessageCommandExecuted;
         //SocketClient.AutocompleteExecuted += React_AutocompleteExecuted;
         //SocketClient.ModalSubmitted += React_ModalSubmitted;
         //SocketClient.ApplicationCommandCreated += React_ApplicationCommandCreated;
@@ -125,6 +123,94 @@ public class SocketDiscordChatBotClient(
         await base.PrepareBot();
     }
 
+    private async Task React_ButtonExecuted(SocketMessageComponent component)
+    {
+        if (component.User.IsBot)
+            return;
+        else
+        {
+            Guid convoId = component.Channel is IGuildChannel gch
+                ? gch.PackDiscordConversationId()
+                : component.Channel is IDMChannel dmch
+                ? dmch.PackDiscordConversationId()
+                : throw new InvalidOperationException($"Unable to obtain a conversation id from channel: {component.Channel}");
+
+            var context = new DiscordComponentUpdateContext(this, component, convoId, false);
+
+            var action = await Manager.CheckIfCommand(context);
+            if (action is not null)
+                context.JumpToActiveAction = action.ActionName;
+
+            await SubmitUpdate(context);
+        }
+    }
+
+    private async Task React_MessageCommandExecuted(SocketMessageCommand command)
+    {
+        if (command.User.IsBot)
+            return;
+        else
+        {
+            Guid convoId = command.Channel is IGuildChannel gch
+                ? gch.PackDiscordConversationId()
+                : command.Channel is IDMChannel dmch
+                ? dmch.PackDiscordConversationId()
+                : throw new InvalidOperationException($"Unable to obtain a conversation id from channel: {command.Channel}");
+
+            var context = new DiscordMessageCommandUpdateContext(this, command, convoId, false);
+
+            var action = await Manager.CheckIfCommand(context);
+            if (action is not null)
+                context.JumpToActiveAction = action.ActionName;
+
+            await SubmitUpdate(context);
+        }
+    }
+
+    private async Task React_UserCommandExecuted(SocketUserCommand command)
+    {
+        if (command.User.IsBot)
+            return;
+        else
+        {
+            Guid convoId = command.Channel is IGuildChannel gch
+                ? gch.PackDiscordConversationId()
+                : command.Channel is IDMChannel dmch
+                ? dmch.PackDiscordConversationId()
+                : throw new InvalidOperationException($"Unable to obtain a conversation id from channel: {command.Channel}");
+
+            var context = new DiscordUserCommandUpdateContext(this, command, convoId, false);
+
+            var action = await Manager.CheckIfCommand(context);
+            if (action is not null)
+                context.JumpToActiveAction = action.ActionName;
+
+            await SubmitUpdate(context);
+        }
+    }
+
+    private async Task React_SlashCommandExecuted(SocketSlashCommand command)
+    {
+        if (command.User.IsBot)
+            return;
+        else
+        {
+            Guid convoId = command.Channel is IGuildChannel gch
+                ? gch.PackDiscordConversationId()
+                : command.Channel is IDMChannel dmch
+                ? dmch.PackDiscordConversationId()
+                : throw new InvalidOperationException($"Unable to obtain a conversation id from channel: {command.Channel}");
+
+            var context = new DiscordSlashCommandUpdateContext(this, command, convoId, false);
+
+            var action = await Manager.CheckIfCommand(context);
+            if (action is not null)
+                context.JumpToActiveAction = action.ActionName;
+
+            await SubmitUpdate(context);
+        }
+    }
+
     private Task SocketClient_Connected()
     {
         Debug.Assert(sem is not null);
@@ -152,12 +238,27 @@ public class SocketDiscordChatBotClient(
     private Task React_VoiceChannelStatusUpdated()
         => Task.CompletedTask;
 
-    private Task React_MessageReceived(SocketMessage msg) 
-        => msg.Author.Id == DiscordBotId
-            ? Task.CompletedTask
-            : SubmitUpdate(
-                new DiscordMessageReceivedUpdateContext(this, msg, ((IGuildChannel)msg.Channel).PackDiscordConversationId(), false)
-            );
+    private async Task React_MessageReceived(SocketMessage msg)
+    {
+        if (msg.Author.IsBot)
+            return;
+        else
+        {
+            Guid convoId = msg.Channel is IGuildChannel gch
+                ? gch.PackDiscordConversationId()
+                : msg.Channel is IDMChannel dmch
+                ? dmch.PackDiscordConversationId()
+                : throw new InvalidOperationException($"Unable to obtain a conversation id from channel: {msg.Channel}");
+
+            var context = new DiscordMessageReceivedUpdateContext(this, msg, convoId, false);
+
+            var action = await Manager.CheckIfCommand(context);
+            if (action is not null)
+                context.JumpToActiveAction = action.ActionName;
+
+            await SubmitUpdate(context);
+        }
+    }
 
     private Task React_MessageDeleted()
         => Task.CompletedTask;

@@ -10,6 +10,15 @@ namespace GLV.Shared.ChatBot.Discord;
 
 public static class DiscordExtensions
 {
+    public static UserInfo? GetUserInfo(this IUser user)
+        => user is not null
+            ? new UserInfo(
+                user.Username,
+                user.GlobalName,
+                user.PackDiscordUserId()
+            )
+            : null;
+
     public static void UnpackDiscordGuildChannelId(this Guid guildId, out ulong guild, out ulong channel)
     {
         var span = MemoryMarshal.Cast<Guid, ulong>(MemoryMarshal.CreateSpan(ref guildId, 1));
@@ -69,4 +78,7 @@ public static class DiscordExtensions
 
     public static Guid PackDiscordConversationId(this IGuildChannel channel)
         => MemoryMarshal.Cast<ulong, Guid>([channel.GuildId, channel.Id])[0];
+
+    public static Guid PackDiscordConversationId(this IDMChannel channel)
+        => MemoryMarshal.Cast<ulong, Guid>([0, channel.Id])[0];
 }

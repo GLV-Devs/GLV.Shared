@@ -5,11 +5,14 @@ using GLV.Shared.ChatBot.Discord.DiscordUpdates;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace GLV.Shared.ChatBot.Discord;
+
+public sealed record class DiscordEmbedBuilderSet(EmbedBuilder EmbedBuilder, ComponentBuilder ComponentBuilder);
 
 public abstract class DiscordChatBotClient : IChatBotClient
 {
@@ -17,13 +20,11 @@ public abstract class DiscordChatBotClient : IChatBotClient
         string botId,
         IDiscordClient client,
         ChatBotManager manager,
-        CommandService commandService,
         Func<DiscordUpdateContext, ChatBotManager, Task>? updateHandler = null
     )
     {
         Manager = manager ?? throw new ArgumentNullException(nameof(manager));
         BotClient = client ?? throw new ArgumentNullException(nameof(client));
-        CommandService = commandService ?? throw new ArgumentNullException(nameof(commandService));
         BotId = botId;
         UpdateHandler = updateHandler;
         StatusCollection = DiscordBotStatuses.CreateStatusCollection(this);
@@ -32,29 +33,12 @@ public abstract class DiscordChatBotClient : IChatBotClient
     protected Task SubmitUpdate(DiscordUpdateContext context)
         => UpdateHandler is not null ? UpdateHandler.Invoke(context, Manager) : Manager.SubmitUpdate(context);
 
-    protected virtual async Task BotClient_CommandUpdate(ICommandContext context, object[] args, IServiceProvider? services, CommandInfo commandInfo)
-    {
-        var update = new DiscordCommandUpdateContext(this, context, commandInfo, context.PackDiscordConversationId())
-        {
-            JumpToActiveAction = commandInfo.Aliases[0],
-            JumpToActiveActionStep = 0
-        };
-
-        if (UpdateHandler is not null)
-            await UpdateHandler.Invoke(update, Manager);
-        else
-            await Manager.SubmitUpdate(update);
-    }
-
     public string Platform { get; } = UpdateContext.DiscordPlatform;
     public ChatBotManager Manager { get; }
     public IDiscordClient BotClient { get; }
-    public CommandService CommandService { get; }
     public string BotId { get; }
     public object UnderlyingBotClientObject => BotClient;
     public Func<DiscordUpdateContext, ChatBotManager, Task>? UpdateHandler { get; }
-
-    public bool AllowReactionsInPlaceOfInlineKeyboard { get; init; } = false;
 
     [field: AllowNull]
     public string BotHandle
@@ -83,39 +67,54 @@ public abstract class DiscordChatBotClient : IChatBotClient
         return true;
     }
 
+    private Regex? CheckCommandRegex;
     public virtual Task PrepareBot()
     {
         var me = BotClient.CurrentUser;
         BotHandle = me.Username!;
         DiscordBotId = me.Id!;
         BotMention = BotClient.CurrentUser.Mention;
+        CheckCommandRegex = DiscordRegexes.CheckCommandRegex(BotMention);
         return Task.CompletedTask;
     }
+
+    private readonly static InteractionContextType[] InteractionContextTypeArray = [
+        InteractionContextType.Guild,
+        InteractionContextType.PrivateChannel,
+        InteractionContextType.BotDm
+    ];
 
     public async Task SetBotCommands(IEnumerable<ConversationActionInformation> commands)
     {
         if (commands.Any() is false)
             return;
 
-        await CommandService.CreateModuleAsync("ChatBotCommands", mb =>
+        List<ApplicationCommandProperties> properties = [];
+        foreach (var cmd in commands)
         {
-            foreach (var cmd in commands)
-            {
-                mb.AddCommand(cmd.CommandTrigger, BotClient_CommandUpdate, cb =>
-                {
-                    cb.Name = cmd.ActionName;
-                    cb.RunMode = RunMode.Async;
-                    cb.Summary = cmd.CommandDescription;
-                });
-            }
-        });
+            properties.Add(
+                new SlashCommandBuilder()
+                .WithDescription(cmd.CommandDescription)
+                .WithName(cmd.CommandTrigger)
+                .WithContextTypes(InteractionContextTypeArray)
+                .Build()
+            );
+        }
+
+        properties.Add(
+                new SlashCommandBuilder()
+                .WithDescription("Cancels the current action and resets the conversation")
+                .WithName("cancel")
+                .WithContextTypes(InteractionContextTypeArray)
+                .Build()
+        );
+
+        await BotClient.BulkOverwriteGlobalApplicationCommand([.. properties]);
     }
 
     public bool IsValidBotCommand(string text, [NotNullWhen(true)] out string? cmd)
     {
-        cmd = text;
-        return true;
-        /*
+        Debug.Assert(CheckCommandRegex is not null);
         var match = CheckCommandRegex.Match(text);
         if (match is not null && match.Success && match.Groups.TryGetValue("cmd", out var grp))
         {
@@ -125,7 +124,6 @@ public abstract class DiscordChatBotClient : IChatBotClient
 
         cmd = null;
         return false;
-        */
     }
 
     public Task SetBotDescription(string name, string? shortDescription = null, string? description = null, CultureInfo? culture = null)
@@ -135,75 +133,67 @@ public abstract class DiscordChatBotClient : IChatBotClient
     {
         conversationId.UnpackDiscordConversationId(out var guild, out var channel);
 
-        if (kr is Keyboard keyboard)
-        {
-            if (AllowReactionsInPlaceOfInlineKeyboard)
-                throw new NotImplementedException();
-            else
-                throw new NotSupportedException("Keyboards are not supported in DiscordChatBotClient. Try setting AllowReactionsInPlaceOfInlineKeyboard to true");
-        }
+        var reply
+            = replyToMessageId is long rtmi
+            ? new MessageReference((ulong)rtmi)
+            : null;
+        var flags = options.SendWithoutNotification ? MessageFlags.SuppressNotification : 0;
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+        var ch = await BotClient.GetChannelAsync(channel)
+            ?? throw new InvalidOperationException($"Could not find a channel under id {channel} that this bot has access to");
+
+        if (ch is not IMessageChannel messageChannel)
+            throw new InvalidOperationException($"The channel under id {channel} is not a message channel");
         else
         {
-            var reply
-                = replyToMessageId is long rtmi
-                ? new MessageReference((ulong)rtmi)
-                : null;
-            var flags = options.SendWithoutNotification ? MessageFlags.SuppressNotification : 0;
+            var (embed, components) = await BuildEmbedFromKeyboard(text, kr);
 
-            ArgumentException.ThrowIfNullOrWhiteSpace(text);
-
-            var ch = await BotClient.GetChannelAsync(channel)
-                ?? throw new InvalidOperationException($"Could not find a channel under id {channel} that this bot has access to");
-
-            if (ch is not IMessageChannel messageChannel)
-                throw new InvalidOperationException($"The channel under id {channel} is not a message channel");
-            else
-            {
-                return attachments is not null && attachments.Any()
-                    ? (long)(await messageChannel.SendFilesAsync(attachments.Select(a => new FileAttachment(
-                        a.GetContent(),
-                        a.AttachmentTitle ?? "notitle",
-                        a.Description,
-                        a.IsSpoiler,
-                        a.IsThumbnail,
-                        a.Duration
-                    )), text, messageReference: reply, flags: flags)).Id
-                    : (long)(await messageChannel.SendMessageAsync(text, messageReference: reply, flags: flags)).Id;
-            }
+            return attachments is not null && attachments.Any()
+                ? (long)(await messageChannel.SendFilesAsync(attachments.Select(a => new FileAttachment(
+                    a.GetContent(),
+                    a.AttachmentTitle ?? "notitle",
+                    a.Description,
+                    a.IsSpoiler,
+                    a.IsThumbnail,
+                    a.Duration
+                )), text, messageReference: reply, flags: flags, embed: embed, components: components)).Id
+                : (long)(await messageChannel.SendMessageAsync(text, messageReference: reply, flags: flags, embed: embed, components: components)).Id;
         }
     }
 
-    public Task AnswerKeyboardResponse(Guid conversationId, KeyboardResponse keyboardResponse, string? alertMessage, bool showAlert, int cacheTime = 0)
+    public async Task AnswerKeyboardResponse(Guid conversationId, KeyboardResponse keyboardResponse, string? alertMessage, bool showAlert, int cacheTime = 0)
     {
-        if (AllowReactionsInPlaceOfInlineKeyboard)
-            throw new NotImplementedException();
+        if (keyboardResponse.AttachedData is SocketMessageComponent comp)
+            await comp.RespondAsync(alertMessage, ephemeral: !showAlert);
         else
-            throw new NotSupportedException("Keyboards are not supported in DiscordChatBotClient. Try setting AllowReactionsInPlaceOfInlineKeyboard to true");
+            throw new ArgumentException("The response does not contain a valid SocketMessageComponent", nameof(keyboardResponse));
     }
 
-    public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, MessageOptions options = default)
+    public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard = default, MessageOptions options = default)
     {
         conversationId.UnpackDiscordConversationId(out var guild, out var channel);
 
-        if (newKeyboard is Keyboard keyboard)
+        ArgumentException.ThrowIfNullOrWhiteSpace(newText);
+
+        var ch = await BotClient.GetChannelAsync(channel)
+            ?? throw new InvalidOperationException($"Could not find a channel under id {channel} that this bot has access to");
+
+        if (ch is not IMessageChannel messageChannel)
+            throw new InvalidOperationException($"The channel under id {channel} is not a message channel");
+
+        var (embed, components) = await BuildEmbedFromKeyboard(newText, newKeyboard);
+
+        await messageChannel.ModifyMessageAsync((ulong)messageId, f =>
         {
-            if (AllowReactionsInPlaceOfInlineKeyboard)
-                throw new NotImplementedException();
-            else
-                throw new NotSupportedException("Keyboards are not supported in DiscordChatBotClient. Try setting AllowReactionsInPlaceOfInlineKeyboard to true");
-        }
-        else
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(newText);
-
-            var ch = await BotClient.GetChannelAsync(channel)
-                ?? throw new InvalidOperationException($"Could not find a channel under id {channel} that this bot has access to");
-
-            if (ch is not IMessageChannel messageChannel)
-                throw new InvalidOperationException($"The channel under id {channel} is not a message channel");
-
-            await messageChannel.ModifyMessageAsync((ulong)messageId, f => f.Content = newText);
-        }
+            f.Content = newText;
+            if (newKeyboard is not null)
+            {
+                f.Embed = embed;
+                f.Components = components;
+            }
+        });
     }
 
     public async Task DeleteMessage(Guid conversationId, long messageId)
@@ -225,11 +215,13 @@ public abstract class DiscordChatBotClient : IChatBotClient
     }
 
     public bool IsReferringToBot(string text)
-        => text.Equals($"@{BotHandle}", StringComparison.OrdinalIgnoreCase)
+        => text.Equals(BotMention, StringComparison.OrdinalIgnoreCase)
+        || text.Equals($"@{BotHandle}", StringComparison.OrdinalIgnoreCase)
         || text.Equals($"<@{DiscordBotId}>", StringComparison.OrdinalIgnoreCase);
 
     public bool ContainsReferenceToBot(string text)
-        => text.Contains($"@{BotHandle}", StringComparison.OrdinalIgnoreCase)
+        => text.Contains(BotMention, StringComparison.OrdinalIgnoreCase)
+        || text.Contains($"@{BotHandle}", StringComparison.OrdinalIgnoreCase)
         || text.Contains($"<@{DiscordBotId}>", StringComparison.OrdinalIgnoreCase);
 
     public bool TryGetTextAfterReferenceToBot(string text, out ReadOnlySpan<char> rest)
@@ -322,7 +314,104 @@ public abstract class DiscordChatBotClient : IChatBotClient
         await guild.RemoveBanAsync(user);
     }
 
+    public async Task<long?> RespondToUpdate(UpdateContext context, string? text, Keyboard? keyboard = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default)
+    {
+        if (context is DiscordInteractionUpdateContext interactionContext
+         && interactionContext.Interaction is SocketCommandBase cmd)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+            var (embed, components) = await BuildEmbedFromKeyboard(text, keyboard);
+
+            if (attachments is not null && attachments.Any())
+            {
+                await cmd.RespondWithFilesAsync(attachments.Select(a => new FileAttachment(
+                    a.GetContent(),
+                    a.AttachmentTitle ?? "notitle",
+                    a.Description,
+                    a.IsSpoiler,
+                    a.IsThumbnail,
+                    a.Duration
+                )), text, embed: embed, components: components);
+            }
+            else
+                await cmd.RespondAsync(text, embed: embed, components: components);
+
+            return null;
+        }
+        else if (context is DiscordComponentUpdateContext componentContext
+         && componentContext.Interaction is SocketMessageComponent comp)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+            var (embed, components) = await BuildEmbedFromKeyboard(text, keyboard);
+
+            if (attachments is not null && attachments.Any())
+            {
+                await comp.RespondWithFilesAsync(attachments.Select(a => new FileAttachment(
+                    a.GetContent(),
+                    a.AttachmentTitle ?? "notitle",
+                    a.Description,
+                    a.IsSpoiler,
+                    a.IsThumbnail,
+                    a.Duration
+                )), text, embed: embed, components: components);
+            }
+            else
+                await comp.RespondAsync(text, embed: embed, components: components);
+
+            return null;
+        }
+
+        await SendMessage(context.ConversationId, text, keyboard, context.Message?.MessageId, attachments, options);
+
+        return null;
+    }
+
     public BotStatusSet StatusCollection { get; }
+
+    public readonly record struct KeyboardEmbed(Embed? Embed, MessageComponent? Component);
+    public static async ValueTask<KeyboardEmbed> BuildEmbedFromKeyboard(string title, Keyboard? kr)
+    {
+        if (kr is Keyboard keyboard && keyboard != default)
+        {
+            var embedBuilder = new EmbedBuilder().WithTitle(title);
+            var componentBuilder = new ComponentBuilder();
+
+            foreach (var rowInfo in keyboard.Rows)
+            {
+                var row = new ActionRowBuilder();
+
+                foreach (var keyInfo in rowInfo.Keys)
+                {
+                    ButtonBuilder button = new ButtonBuilder()
+                        .WithLabel(keyInfo.Text)
+                        .WithStyle(ButtonStyle.Primary)
+                        .WithEmote(null)
+                        .WithCustomId(keyInfo.Data)
+                        .WithUrl(null)
+                        .WithDisabled(false);
+
+                    if (keyInfo.KeyDecorator is Func<object, ValueTask> keyDecorator)
+                        await keyDecorator.Invoke(button);
+
+                    row.WithButton(button);
+                }
+
+                if (rowInfo.RowDecorator is Func<object, ValueTask> rowDecorator)
+                    await rowDecorator.Invoke(row);
+
+                componentBuilder.AddRow(row);
+            }
+
+            if (keyboard.KeyboardDecorator is Func<object, ValueTask> decorator)
+                await decorator.Invoke(new DiscordEmbedBuilderSet(embedBuilder, componentBuilder));
+
+            return new(embedBuilder.Build(), componentBuilder.Build());
+        }
+
+        return default;
+    }
 }
 
 internal static class DiscordBotStatuses

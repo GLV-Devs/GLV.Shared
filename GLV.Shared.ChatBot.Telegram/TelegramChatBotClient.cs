@@ -168,7 +168,7 @@ public class TelegramChatBotClient : IChatBotClient
         ReplyMarkup? markup = null;
 
         if (kr is Keyboard keyboard)
-            markup = ParseKeyboard(keyboard);
+            markup = await ParseKeyboard(keyboard);
         else
             ArgumentException.ThrowIfNullOrWhiteSpace(text);
 
@@ -269,7 +269,7 @@ public class TelegramChatBotClient : IChatBotClient
     public async Task EditMessage(Guid conversationId, long messageId, string? newText, Keyboard? newKeyboard, MessageOptions options = default)
     {
         var chatId = conversationId.UnpackTelegramConversationId();
-        var markup = newKeyboard is Keyboard kb ? ParseKeyboard(kb) : null;
+        var markup = newKeyboard is Keyboard kb ? await ParseKeyboard(kb) : null;
         var mid = (int)messageId;
 
         if (string.IsNullOrWhiteSpace(newText) && markup is null)
@@ -284,8 +284,26 @@ public class TelegramChatBotClient : IChatBotClient
             await BotClient.EditMessageText(chatId, mid, newText, replyMarkup: markup, parseMode: options.Html ? ParseMode.Html : ParseMode.None);
     }
 
-    public static InlineKeyboardMarkup ParseKeyboard(in Keyboard keyboard)
-        => new(keyboard.Rows.Select(x => x.Keys.Select(y => new InlineKeyboardButton(y.Text) { CallbackData = y.Data })));
+    public static async ValueTask<InlineKeyboardMarkup> ParseKeyboard(Keyboard keyboard)
+    {
+        List<List<InlineKeyboardButton>> kb = new();
+        foreach (var rowInfo in keyboard.Rows)
+        {
+            var row = new List<InlineKeyboardButton>();
+            foreach (var keyInfo in rowInfo.Keys)
+            {
+                var btn = new InlineKeyboardButton(keyInfo.Text) { CallbackData = keyInfo.Data };
+                if (keyInfo.KeyDecorator is Func<object, ValueTask> decorator)
+                    await decorator(btn);
+
+                row.Add(btn);
+            }
+
+            kb.Add(row);
+        }
+
+        return new InlineKeyboardMarkup(kb);
+    }
 
     [ThreadStatic]
     private static int[]? msgIdArray;
@@ -375,6 +393,9 @@ public class TelegramChatBotClient : IChatBotClient
         => BotClient.UnbanChatMember(conversationId.UnpackTelegramConversationId(), userId, true);
 
     public BotStatusSet StatusCollection { get; }
+
+    public async Task<long?> RespondToUpdate(UpdateContext context, string? text, Keyboard? keyboard = null, IEnumerable<MessageAttachment>? attachments = null, MessageOptions options = default)
+        => await SendMessage(context.ConversationId, text, keyboard, context.Message?.MessageId, attachments, options);
 }
 
 internal static class TelegramBotStatuses
