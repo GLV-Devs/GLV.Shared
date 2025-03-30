@@ -10,6 +10,15 @@ namespace GLV.Shared.EntityFramework;
 
 public static class DbContextExtensions
 {
+    public static async Task InsertInCacheAndContext<TQueryKey, TItem>(this DbContext context, Cache<TQueryKey, TItem> cache, TQueryKey key, TItem item)
+        where TQueryKey : notnull
+        where TItem : class
+    {
+        context.Set<TItem>().Add(item);
+        await context.SaveChangesAsync();
+        cache.InsertItem(key, item);
+    }
+
     public static async ValueTask<TItem?> GetFromCacheOrContext<TItem, TQueryKey>
         (this DbContext context, Cache<TQueryKey, TItem> cache, TQueryKey key, Expression<Func<TItem, bool>> queryExpression, bool insertIfFoundOnContext = true)
         where TQueryKey : notnull

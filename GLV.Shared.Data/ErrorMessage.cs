@@ -20,4 +20,4 @@ public readonly record struct ErrorMessageProperty(string Key, string? Value)
         => new(key, value?.ToString());
 }
 
-public readonly record struct ErrorMessage(string? DefaultMessageES, string Key, IEnumerable<ErrorMessageProperty>? Properties);
+public readonly record struct ErrorMessage(string? DefaultMessageEN, string Key, IEnumerable<ErrorMessageProperty>? Properties);

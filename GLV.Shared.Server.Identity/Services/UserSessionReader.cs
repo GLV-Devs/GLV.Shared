@@ -145,7 +145,7 @@ public class UserSessionReader<TUserInfo, TUserKey>
         arr[0] = new(ClaimTypes.NameIdentifier, user.GetIdAsString(), ClaimValueTypes.String);
         arr[1] = new(UserAuthConstants.RefreshableClaimsType, "true", ClaimValueTypes.Boolean);
         arr[2] = new(UserAuthConstants.UserLevelClaimsType, "0", ClaimValueTypes.UInteger32);
-        arr[3] = new(UserAuthConstants.UserPermissionClaimsType, ((ulong)user.Permissions).ToString(), ClaimValueTypes.UInteger64);
+        arr[3] = new(UserAuthConstants.UserPermissionClaimsType, (user.Permissions).ToString(), ClaimValueTypes.UInteger64);
         arr[4] = new(UserAuthConstants.IsRootClaimsType, user.IsRoot is true ? "true" : "false", ClaimValueTypes.Boolean);
         arr[5] = new(UserSecurityRefreshTokenClaimsType, user.RefreshTokenStamp.ToString(), ClaimValueTypes.String);
 

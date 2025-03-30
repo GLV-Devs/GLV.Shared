@@ -19,6 +19,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using GLV.Shared.Server.Identity.Services;
 using GLV.Shared.Server.Data;
+using System.Net;
 
 namespace GLV.Shared.Server.Identity.Controllers;
 
@@ -26,7 +27,15 @@ namespace GLV.Shared.Server.Identity.Controllers;
 /// Provides actions regarding an user account's information
 /// </summary>
 [NonController]
-public abstract class GlvIdentityController<TUserInfo, TContext, TUserKey, TUserView, TUserCreateModel, TUserUpdateModel, TUserLoginModel>(
+public abstract class GlvIdentityController<
+    TUserInfo, 
+    TContext, 
+    TUserKey, 
+    TUserView, 
+    TUserCreateModel, 
+    TUserUpdateModel, 
+    TUserLoginModel
+>(
     IRepository<TUserInfo, TUserKey, TUserView, TUserCreateModel, TUserUpdateModel> repository,
     ILogger<GlvIdentityController<TUserInfo, TContext, TUserKey, TUserView, TUserCreateModel, TUserUpdateModel, TUserLoginModel>> logger,
     SignInManager<TUserInfo> signInManager,
@@ -50,6 +59,93 @@ public abstract class GlvIdentityController<TUserInfo, TContext, TUserKey, TUser
     public virtual Task<IActionResult> Create(TUserCreateModel creationModel)
         => CreateEntity(creationModel);
 
+    /// <summary>
+    /// ChangePassword - 
+    /// Changes the currently logged in user's password
+    /// </summary>
+    /// <returns></returns>
+    [HttpPatch("password")]
+    [Authorize]
+    public virtual async Task<IActionResult> ChangePassword(ChangeUserPasswordModel model)
+    {
+        var session = this.GetUserSession<TUserInfo, TUserKey>();
+        Debug.Assert(session != null);
+        var key = session.RequesterUserId;
+        var user = await Context.Set<TUserInfo>().Where(x => x.Id.Equals(key)).SingleOrDefaultAsync();
+        if (user is null)
+        {
+            await HttpContext.SignOutAsync(authorizationSchemeName);
+            return this.CreateServerErrorResult(HttpStatusCode.NotFound);
+        }
+
+        if (string.IsNullOrWhiteSpace(model.OldPassword))
+            return this.CreateServerErrorResult(HttpStatusCode.BadRequest, ErrorMessages.EmptyProperty(nameof(model.OldPassword)));
+
+        if (string.IsNullOrWhiteSpace(model.NewPassword))
+            return this.CreateServerErrorResult(HttpStatusCode.BadRequest, ErrorMessages.EmptyProperty(nameof(model.NewPassword)));
+
+        var result = await userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
+        if (result.Succeeded)
+        {
+            await HttpContext.SignOutAsync(authorizationSchemeName);
+
+            user.RefreshTokenStamp = Guid.NewGuid();
+            await Context.SaveChangesAsync();
+
+            return this.CreateServerResponseResult(null);
+        }
+
+        ErrorList errors = new();
+        errors.AddIdentityErrors(result);
+        return this.CreateServerResponseResult(errors);
+    }
+
+    protected virtual ValueTask<bool> CanChangePermissions(ulong permissions) => ValueTask.FromResult(true);
+
+    /// <summary>
+    /// ChangePermissions - 
+    /// Changes the specified user's password
+    /// </summary>
+    /// <returns></returns>
+    [HttpPatch("permissions")]
+    [Authorize]
+    public virtual async Task<IActionResult> ChangePermissions(ChangeUserPermissionsModel<TUserKey> model)
+    {
+        var session = this.GetUserSession<TUserInfo, TUserKey>();
+        Debug.Assert(session != null);
+        var key = model.UserKey;
+
+        var user = await Context.Set<TUserInfo>().Where(x => x.Id.Equals(key)).SingleOrDefaultAsync();
+
+        if (user is null)
+            return this.CreateServerErrorResult(HttpStatusCode.NotFound, ErrorMessages.EntityNotFound(nameof(TUserInfo), $"id:{key}"));
+
+        if (user.IsRoot || user.BaseLevel >= session.UserLevel)
+            return this.CreateServerErrorResult(HttpStatusCode.Forbidden, IdentityErrorMessages.ModifiedUserLevelTooHigh());
+
+        if (model.NewPermissions is ulong newPermissions)
+        {
+            if (session.IsRoot is false && (
+                await CanChangePermissions(session.GlobalPermissions) is false
+             || (newPermissions & (~session.GlobalPermissions)) > 0
+            ))
+                return this.CreateServerErrorResult(HttpStatusCode.Forbidden, IdentityErrorMessages.InvalidUserPermissions());
+
+            user.Permissions = newPermissions;
+        }
+
+        if (model.NewBaseLevel is uint newBaseLevel)
+        {
+            if (session.IsRoot is false && session.UserLevel <= newBaseLevel)
+                return this.CreateServerErrorResult(HttpStatusCode.Forbidden, IdentityErrorMessages.CurrentUserLevelTooLow());
+
+            user.BaseLevel = newBaseLevel;
+        }
+
+        await Context.SaveChangesAsync();
+
+        return this.CreateServerResponseResult(null);
+    }
     /// <summary>
     /// Refresh - 
     /// Refreshes the current user session
@@ -111,7 +207,7 @@ public abstract class GlvIdentityController<TUserInfo, TContext, TUserKey, TUser
 	/// Login - 
     /// Logins as the user represented in <paramref name="userLogin"/>
 	/// </summary>
-    [HttpPatch]
+    [HttpPost]
     public virtual  async Task<IActionResult> Login(TUserLoginModel? userLogin)
     {
         ErrorList list = new();
@@ -125,14 +221,14 @@ public abstract class GlvIdentityController<TUserInfo, TContext, TUserKey, TUser
         if (string.IsNullOrWhiteSpace(userLogin.Identifier))
             list.AddBadUsername(userLogin.Identifier ?? "");
 
-        if (string.IsNullOrWhiteSpace(userLogin.PasswordSHA256))
+        if (string.IsNullOrWhiteSpace(userLogin.Password))
             list.AddBadPassword();
 
         if (list.Count > 0)
             return FailureResult(list);
 
         Debug.Assert(string.IsNullOrWhiteSpace(userLogin.Identifier) is false);
-        Debug.Assert(string.IsNullOrWhiteSpace(userLogin.PasswordSHA256) is false);
+        Debug.Assert(string.IsNullOrWhiteSpace(userLogin.Password) is false);
         var user = await UserManager.FindByEmailAsync(userLogin.Identifier) ?? await UserManager.FindByNameAsync(userLogin.Identifier);
         if (user is null)
         {
@@ -142,7 +238,7 @@ public abstract class GlvIdentityController<TUserInfo, TContext, TUserKey, TUser
 
         Logger.LogInformation("Attempting to log in as user {user} ({userid})", userLogin.Identifier, user.Id);
 
-        var result = await signInManager.CheckPasswordSignInAsync(user, userLogin.PasswordSHA256, false);
+        var result = await signInManager.CheckPasswordSignInAsync(user, userLogin.Password, false);
 
         if (result.Succeeded)
         {
