@@ -1,4 +1,6 @@
-﻿namespace GLV.Shared.Data;
+﻿using GLV.Shared.Data;
+
+namespace GLV.Shared.Server.Client.Models;
 
 [Serializable]
 public class ResponseResultFailureException : Exception

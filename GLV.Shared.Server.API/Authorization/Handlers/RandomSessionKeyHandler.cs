@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using GLV.Shared.Server.API.Options;
+using GLV.Shared.Server.Client.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;

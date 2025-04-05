@@ -1,0 +1,107 @@
+﻿@import "bsicons.css";
+
+main {
+    position: relative;
+}
+
+div {
+    animation-name: top-drop-fade-in-anim;
+    animation-duration: 0.5s;
+    animation-iteration-count: 1;
+    animation-timing-function: ease-in-out;
+}
+
+.not-in-website {
+    display: none !important;
+}
+
+.error-container {
+    border: 2px dotted red;
+    border-radius: 15%;
+    margin: 1rem;
+    padding: .5rem;
+}
+
+.error-notice {
+    color: red;
+    font-style: italic;
+    font-size: medium;
+    margin: .25em;
+    text-align: center;
+}
+
+.notice-container {
+    border: 1px dotted lightgray;
+    border-radius: 15%;
+    margin: 1rem;
+    padding: .5rem;
+}
+
+.small-notice {
+    color: gray;
+    font-style: italic;
+    font-size: small;
+    margin: .25em;
+    text-align: center;
+}
+
+    .small-notice::before {
+        content: '*'
+    }
+
+article {
+    margin-bottom: 6rem;
+}
+
+.footer {
+    position: absolute;
+    bottom: 10px;
+    width: 100%;
+}
+
+.footer > * {
+    padding: 0;
+    color: #6381af;
+    font-size: .7em;
+    margin-top: 10px;
+    margin-left: 15px;
+    margin-right: 15px;
+}
+
+.highlightable {
+    transition: border ease-in-out 0.15s, height ease-in-out 0.15s, width ease-in-out 0.15s, color ease-in-out 0.15s, transform ease-in-out 0.15s;
+}
+
+    .highlightable:hover {
+        color: #0d6efd;
+        transform: scale(1.05, 1.05);
+        border-radius: 5px;
+        border-width: 2px;
+        border-color: lightblue;
+        border-style: solid;
+    }
+
+@keyframes top-drop-fade-in-anim {
+    0% {
+        transform: scaleY(1.5);
+        opacity: 0;
+    }
+
+    65% {
+        transform: scaleY(1);
+    }
+
+    100% {
+        opacity: unset;
+    }
+}
+
+.input-container * {
+    width: 100%;
+}
+
+#content {
+    resize: none;
+    width: 100%;
+    height: 10rem;
+}

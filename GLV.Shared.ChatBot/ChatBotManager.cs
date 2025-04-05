@@ -206,8 +206,19 @@ public partial class ChatBotManager
     private static InvalidOperationException UnprocessableUpdateException(Guid conversationId, int attempt)
         => new($"An update of the conversation of id '{conversationId}' cannot be processed, as the system cannot continue waiting for it after attempt #{attempt}");
 
-    protected virtual ValueTask<bool> FilterUpdates(UpdateContext update)
-        => UpdateFilter?.Invoke(update) ?? ValueTask.FromResult(true);
+    protected virtual async ValueTask<bool> FilterUpdates(UpdateContext update)
+    {
+        if (UpdateFilter?.Invoke(update) is ValueTask<bool> t)
+        {
+            if (await t is false && OnUpdateTypeFilteredOut?.Invoke(update) is ValueTask t1)
+            {
+                await t1;
+                return false;
+            }
+        }
+
+        return true; 
+    }
 
     /// <summary>
     /// Attempts to process the inputted command. If it matches a command, sets the context to the current state, and returns <see langword="true"/>. Otherwise, leaves the context unchanged and returns <see langword="false"/>
@@ -335,7 +346,7 @@ public partial class ChatBotManager
             sb.AppendLine().AppendLine();
         }
 
-        sb.AppendLine(SoftwareInfo.DevDiegoGInfo.GetWatermark());
+        sb.AppendLine(SoftwareInfo.DevDiegoGInfo.GetInfoString());
 
         return sb.ToString();
     }
@@ -344,6 +355,7 @@ public partial class ChatBotManager
     {
         using var scope = ChatBotServices.CreateScope();
         var services = scope.ServiceProvider;
+
 
         var store = services.GetRequiredService<IConversationStore>();
 

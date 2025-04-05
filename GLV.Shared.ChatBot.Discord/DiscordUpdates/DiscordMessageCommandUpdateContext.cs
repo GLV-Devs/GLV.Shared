@@ -14,6 +14,6 @@ public class DiscordMessageCommandUpdateContext : DiscordInteractionUpdateContex
     ) : base(client, interaction, DiscordUpdateKind.Command, conversationId, isHandledByBotClient)
     {
         MessageInteraction = interaction;
-        msg = new(interaction.Data.Name, (long)interaction.Id, null, interaction.User?.GetUserInfo(), false);
+        msg = new(interaction.Data.Name, (long)interaction.Id, null, interaction.User?.GetUserInfo(), false, MessageInteraction);
     }
 }

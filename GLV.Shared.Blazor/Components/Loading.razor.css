@@ -1,0 +1,4 @@
+.loading-spinner {
+    place-self: center;
+    z-index: 1000;
+}

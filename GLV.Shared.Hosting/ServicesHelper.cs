@@ -8,24 +8,47 @@ using Microsoft.Extensions.Options;
 namespace GLV.Shared.Hosting;
 public static class ServicesHelper
 {
-    public static void RegisterDecoratedWorkers(this IServiceCollection services)
+    public static IEnumerable<(Type Type, IEnumerable<TAttribute> Attributes)> GetDecoratedTypesFromAssemblies<TAttribute>(
+        IEnumerable<Assembly>? assemblies,
+        IEnumerable<Assembly>? skip
+    ) where TAttribute : Attribute
     {
-        foreach (var (type, attributes) in AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(x => x.GetTypes())
-                .Select(x => (Type: x, Attributes: x.GetCustomAttributes<RegisterWorkerAttribute>()))
-                .Where(x => x.Attributes is not null && x.Attributes.Any()))
+        if (assemblies is null)
+            assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+        if (skip is not null && skip.Any())
+        {
+            return assemblies.Except(skip)
+                             .SelectMany(x => x.GetTypes())
+                             .Select(x => (Type: x, Attributes: x.GetCustomAttributes<TAttribute>()))
+                             .Where(x => x.Attributes is not null && x.Attributes.Any());
+        }
+
+        return assemblies.SelectMany(x => x.GetTypes())
+                         .Select(x => (Type: x, Attributes: x.GetCustomAttributes<TAttribute>()))
+                         .Where(x => x.Attributes is not null && x.Attributes.Any());
+    }
+
+    public static void RegisterDecoratedWorkers(
+        this IServiceCollection services,
+        IEnumerable<Assembly>? assemblies = null,
+        params IEnumerable<Assembly>? skip
+    )
+    {
+        foreach (var (type, _) in GetDecoratedTypesFromAssemblies<RegisterWorkerAttribute>(assemblies, skip))
         {
             var desc = new ServiceDescriptor(typeof(IHostedService), type, ServiceLifetime.Singleton);
             services.TryAddEnumerable(desc);
         }
     }
 
-    public static void RegisterDecoratedServices(this IServiceCollection serviceCollection)
+    public static void RegisterDecoratedServices(
+        this IServiceCollection serviceCollection, 
+        IEnumerable<Assembly>? assemblies = null,
+        params IEnumerable<Assembly>? skip
+    )
     {
-        foreach (var (type, attributes) in AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(x => x.GetTypes())
-                .Select(x => (Type: x, Attributes: x.GetCustomAttributes<RegisterServiceAttribute>()))
-                .Where(x => x.Attributes is not null && x.Attributes.Any()))
+        foreach (var (type, attributes) in GetDecoratedTypesFromAssemblies<RegisterServiceAttribute>(assemblies, skip))
         {
             foreach (var attr in attributes)
             {
@@ -81,13 +104,15 @@ public static class ServicesHelper
         );
     }
 
-    public static void RegisterDecoratedOptions(this IServiceCollection services, IConfiguration config)
+    public static void RegisterDecoratedOptions(
+        this IServiceCollection services, 
+        IConfiguration config,
+        IEnumerable<Assembly>? assemblies = null,
+        params IEnumerable<Assembly>? skip
+    )
     {
         services.AddOptions();
-        foreach (var (type, attributes) in AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(x => x.GetTypes())
-                .Select(x => (Type: x, Attributes: x.GetCustomAttributes<RegisterOptionsAttribute>()))
-                .Where(x => x.Attributes is not null && x.Attributes.Any()))
+        foreach (var (type, attributes) in GetDecoratedTypesFromAssemblies<RegisterOptionsAttribute>(assemblies, skip))
         {
             var optionsType = typeof(IOptions<>).MakeGenericType(type);
             var configureOptionsType = typeof(IConfigureOptions<>).MakeGenericType(type);

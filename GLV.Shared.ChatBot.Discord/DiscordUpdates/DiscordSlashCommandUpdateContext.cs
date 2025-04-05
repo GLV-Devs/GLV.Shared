@@ -14,7 +14,7 @@ public class DiscordSlashCommandUpdateContext : DiscordInteractionUpdateContext
     ) : base(client, interaction, DiscordUpdateKind.Command, conversationId, isHandledByBotClient)
     {
         SlashInteraction = interaction;
-        msg = new(interaction.Data.Name, (long)interaction.Id, null, interaction.User?.GetUserInfo(), false);
+        msg = new(interaction.Data.Name, (long)interaction.Id, null, interaction.User?.GetUserInfo(), false, interaction);
     }
 }
 

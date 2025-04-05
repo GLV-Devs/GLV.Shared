@@ -1,14 +1,24 @@
 ﻿namespace GLV.Shared.ChatBot;
 
-public readonly record struct Message(
+public record class Message(
     string? Text, 
     long MessageId, 
-    long? InResponseToMessageId, 
+    MessageReference? InResponseToMessage, 
     UserInfo? Sender, 
-    bool HasExtraData
+    bool HasExtraData,
+    object? UnderlyingMessageObject
 );
 
-public readonly record struct UserInfo(string? Username, string? DisplayName, Guid UserId);
+public readonly record struct MessageReference(
+    long MessageId,
+    string? Text,
+    UserInfo? Sender,
+    bool HasExtraData,
+    object? UnderlyingMessageObject
+);
+
+public readonly record struct UserInfo(string? Username, string? DisplayName, Guid UserId, object? UnderlyingUserObject);
+
 public readonly record struct KeyboardKey(string Text, string? Data)
 {
     public Func<object, ValueTask>? KeyDecorator { get; init; }

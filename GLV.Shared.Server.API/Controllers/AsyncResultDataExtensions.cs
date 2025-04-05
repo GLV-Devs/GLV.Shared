@@ -27,7 +27,7 @@ public static class AsyncResultDataExtensions
         var typeArgs = ServerAsyncResponseGenericTypeBuffer ??= [null!];
         typeArgs[0] = data.AsyncEnumerableType;
 
-        var ctorParams = ServerAsyncResponseConstructorParametersBuffer ?? [null!, null!, null!];
+        var ctorParams = ServerAsyncResponseConstructorParametersBuffer ??= [null!, null!, null!];
         ctorParams[0] = data.AsyncEnumerableType.Name;
         ctorParams[1] = traceId;
         ctorParams[2] = data.Data!;

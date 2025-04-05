@@ -38,69 +38,6 @@ public abstract class AppController<TUser>(ILogger<AppController<TUser>> logger)
     protected readonly ILogger<AppController<TUser>> Logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     [NonAction]
-    public virtual IActionResult FromSuccessResult(SuccessResult result)
-        => result.IsSuccess ? Ok() : FailureResult(result);
-
-    [NonAction]
-    public virtual async Task<IActionResult> FromSuccessResult(Task<SuccessResult> result)
-        => FromSuccessResult(await result);
-
-    [NonAction]
-    public virtual IActionResult FromSuccessResult<T>(SuccessResult<T> result)
-        => result.TryGetResult(out var val) ? Ok(val) : FailureResult(result);
-
-    [NonAction]
-    public virtual IActionResult FromSuccessResult<T>(SuccessResult<IAsyncEnumerable<T>> result)
-        => result.TryGetResult(out var val) ? Ok(val) : FailureResult(result);
-
-    [NonAction]
-    public OkObjectResult Ok<T>(IAsyncEnumerable<T> value)
-        => Ok(new AsyncResultData()
-        {
-            Data = value,
-            AsyncEnumerableType = typeof(T)
-        });
-
-    [NonAction]
-    public virtual async Task<IActionResult> FromSuccessResult<T>(Task<SuccessResult<T>> result)
-        => FromSuccessResult(await result);
-
-    [NonAction]
-    public virtual IActionResult EntityNotFound(string entityName, string? query = null)
-    {
-        var errors = new ErrorList();
-        errors.AddEntityNotFound(entityName, query);
-        return FailureResult(errors);
-    }
-
-    [NonAction]
-    public virtual IActionResult Forbidden()
-    {
-        var errors = new ErrorList();
-        errors.AddNoPermission();
-        return FailureResult(errors);
-    }
-
-    [NonAction]
-    public virtual async Task WriteResultAsJson(object? result, HttpStatusCode code)
-    {
-        HttpContext.Response.StatusCode = (int)code;
-        await HttpContext.Response.WriteAsJsonAsync(result.CreateServerResponse(HttpContext.TraceIdentifier));
-    }
-
-    [NonAction]
-    public virtual IActionResult Forbidden(object? value)
-        => value is null ? Forbidden() : new ObjectResult(value) { StatusCode = (int)HttpStatusCode.Forbidden };
-
-    [NonAction]
-    public virtual IActionResult FailureResult(SuccessResult result)
-        => new ObjectResult(result.ErrorMessages.Errors) { StatusCode = (int?)result.ErrorMessages.RecommendedCode ?? 418 };
-
-    [NonAction]
-    public virtual IActionResult FailureResult<T>(SuccessResult<T> result)
-        => new ObjectResult(result.ErrorMessages.Errors) { StatusCode = (int?)result.ErrorMessages.RecommendedCode ?? 418 };
-
-    [NonAction]
     public ValueTask<TUser?> GetUser()
         => HttpContext.GetUser(User, UserManager);
 

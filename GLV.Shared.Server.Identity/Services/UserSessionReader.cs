@@ -44,6 +44,7 @@ public class UserSessionReader<TUserInfo, TUserKey>
             return info;
 
         TUserKey uid;
+        string? username;
         bool isRefreshable;
         uint level;
         bool isRoot = false;
@@ -57,8 +58,22 @@ public class UserSessionReader<TUserInfo, TUserKey>
                 if (claim.ValueType != ClaimValueTypes.String || TUserKey.TryParse(claim.Value, null, out uid) is false)
                 {
                     Debug.Fail("The name identifier claim failed to be parsed; this is likely an internal error");
+                    // The purpose of this is that while debugging, all tokens are under our control. However in production, they may not be.
+                    // So in debugging, it fails -- While in production, it returns null
+                    // Remember that calls to methods under System.Diagnostics.Debug are not emitted when compiled in release mode
                     return null;
                 }
+                valuecount++;
+            }
+            else if (claim.Type == ClaimTypes.Name)
+            {
+                if (claim.ValueType != ClaimValueTypes.String)
+                {
+                    Debug.Fail("The name identifier claim failed to be parsed; this is likely an internal error");
+                    return null;
+                }
+
+                username = claim.Value;
                 valuecount++;
             }
             else if (claim.Type == UserAuthConstants.RefreshableClaimsType)
@@ -106,9 +121,9 @@ public class UserSessionReader<TUserInfo, TUserKey>
             }
         }
 
-        if (valuecount != 4)
+        if (valuecount != 5)
         {
-            Debug.Fail("The required values count is not exactly 4; this is likely an internal error");
+            Debug.Fail("The required values count is not exactly 5; this is likely an internal error");
             return null;
         }
 
@@ -116,9 +131,11 @@ public class UserSessionReader<TUserInfo, TUserKey>
         Unsafe.SkipInit(out isRefreshable);
         Unsafe.SkipInit(out level);
         Unsafe.SkipInit(out globalPermissions);
+        Unsafe.SkipInit(out username);
 
         var usi = new UserSessionInfo<TUserInfo, TUserKey>(
-            uid, 
+            uid,
+            username,
             globalPermissions, 
             level, 
             isRefreshable,
@@ -140,14 +157,15 @@ public class UserSessionReader<TUserInfo, TUserKey>
 
     public static Claim[] GenerateUserClaims(TUserInfo user)
     {
-        var arr = new Claim[6];
+        var arr = new Claim[7];
 
         arr[0] = new(ClaimTypes.NameIdentifier, user.GetIdAsString(), ClaimValueTypes.String);
-        arr[1] = new(UserAuthConstants.RefreshableClaimsType, "true", ClaimValueTypes.Boolean);
-        arr[2] = new(UserAuthConstants.UserLevelClaimsType, "0", ClaimValueTypes.UInteger32);
-        arr[3] = new(UserAuthConstants.UserPermissionClaimsType, (user.Permissions).ToString(), ClaimValueTypes.UInteger64);
-        arr[4] = new(UserAuthConstants.IsRootClaimsType, user.IsRoot is true ? "true" : "false", ClaimValueTypes.Boolean);
-        arr[5] = new(UserSecurityRefreshTokenClaimsType, user.RefreshTokenStamp.ToString(), ClaimValueTypes.String);
+        arr[1] = new(ClaimTypes.Name, user.UserName!, ClaimValueTypes.String);
+        arr[2] = new(UserAuthConstants.RefreshableClaimsType, "true", ClaimValueTypes.Boolean);
+        arr[3] = new(UserAuthConstants.UserLevelClaimsType, "0", ClaimValueTypes.UInteger32);
+        arr[4] = new(UserAuthConstants.UserPermissionClaimsType, (user.Permissions).ToString(), ClaimValueTypes.UInteger64);
+        arr[5] = new(UserAuthConstants.IsRootClaimsType, user.IsRoot is true ? "true" : "false", ClaimValueTypes.Boolean);
+        arr[6] = new(UserSecurityRefreshTokenClaimsType, user.RefreshTokenStamp.ToString(), ClaimValueTypes.String);
 
         return arr;
     }

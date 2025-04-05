@@ -6,6 +6,12 @@ namespace GLV.Shared.Hosting;
 
 public static class ServiceExtensions
 {
+    public static IServiceCollection AddWorkQueue(this IServiceCollection services)
+    {
+        services.AddSingleton(typeof(WorkQueue<>));
+        return services;
+    }
+
     public static IServiceCollection AddGLVCache(this IServiceCollection services)
     {
         services.AddSingleton(typeof(Cache<,>));

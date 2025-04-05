@@ -135,8 +135,9 @@ public abstract class DiscordChatBotClient : IChatBotClient
 
         var reply
             = replyToMessageId is long rtmi
-            ? new MessageReference((ulong)rtmi)
+            ? new global::Discord.MessageReference((ulong)rtmi)
             : null;
+
         var flags = options.SendWithoutNotification ? MessageFlags.SuppressNotification : 0;
 
         ArgumentException.ThrowIfNullOrWhiteSpace(text);

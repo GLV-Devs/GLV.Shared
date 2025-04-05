@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using GLV.Shared.Server.Client.Models;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Json;
@@ -63,14 +64,15 @@ public sealed class GLVBearerTokenHandler(IOptionsMonitor<BearerTokenOptions> op
     protected override Task HandleSignInAsync(ClaimsPrincipal user, AuthenticationProperties? properties)
     {
         var utcNow = TimeProvider.GetUtcNow();
+        DateTimeOffset expires;
 
         properties ??= new();
-        properties.ExpiresUtc = utcNow + Options.BearerTokenExpiration;
+        properties.ExpiresUtc = expires = utcNow + Options.BearerTokenExpiration;
 
         var response = new GLVAccessTokenResponse
         {
             AccessToken = Options.BearerTokenProtector.Protect(CreateBearerTicket(user, properties)),
-            ExpiresIn = (long)Options.BearerTokenExpiration.TotalSeconds,
+            ExpiresIn = expires.ToUnixTimeSeconds(),
             RefreshToken = Options.RefreshTokenProtector.Protect(CreateRefreshTicket(user, utcNow)),
         };
 

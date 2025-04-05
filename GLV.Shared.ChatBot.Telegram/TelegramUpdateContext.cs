@@ -25,9 +25,10 @@ public class TelegramUpdateContext(
         : new Message(
             update.Message.Text, 
             update.Message.Id,
-            update.Message.ReplyToMessage?.Id,
+            update.Message.GetMessageReference(),
             update.Message.From?.GetUserInfo(),
-            update.Message.Type != MessageType.Text
+            update.Message.Type != MessageType.Text,
+            update.Message
         );
 
     public override KeyboardResponse? KeyboardResponse { get; }

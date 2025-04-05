@@ -4,7 +4,29 @@ namespace GLV.Shared.Common;
 
 public sealed class SoftwareInfo
 {
-    private DateTime nextWatermarkRequest = default;
+    private DateTime nextInfoStringRequest = default;
+
+    public static SoftwareInfo GeCopyRightNoticeFor(string clientName)
+        => new(
+            "https://raw.githubusercontent.com/DiegoG1019/DiegoG1019/main/info/ClientCopyRight.txt",
+            $"This website and all its content excluding 3rd party logos, icons and content belong to '{clientName}', © {DateTime.Now.Year} All rights reserved.",
+            str => str.Replace("{ClientName}", clientName).Replace("{Year}", DateTime.Now.Year.ToString())
+        );
+
+    public static SoftwareInfo GetOwnedByDevCopyRightNoticeFor(string clientName)
+        => new(
+            "https://raw.githubusercontent.com/DiegoG1019/DiegoG1019/main/info/OwnedByDevCopyRight.txt",
+            $"This website's build artifacts, source code, and all its content excluding 3rd party logos, icons and content owned by '{clientName}' belong to Diego García, © {DateTime.Now.Year} All rights reserved.",
+            str => str.Replace("{ClientName}", clientName, StringComparison.OrdinalIgnoreCase)
+                      .Replace("{Year}", DateTime.Now.Year.ToString(), StringComparison.OrdinalIgnoreCase)
+        );
+
+    public static SoftwareInfo CopyRightNotice { get; }
+        = new(
+            "https://raw.githubusercontent.com/DiegoG1019/DiegoG1019/main/info/CopyRight.txt",
+            $"This website, and all its content excluding 3rd party logos and icons belong to Diego García, © {DateTime.Now.Year} All rights reserved.",
+            str => str.Replace("{Year}", DateTime.Now.Year.ToString())
+        );
 
     public static SoftwareInfo HtmlDevDiegoGInfo { get; }
         = new SoftwareInfo(
@@ -18,43 +40,52 @@ public sealed class SoftwareInfo
             "Produced by Diego García. Contact me through https://diegog1019.github.io/ or dagarciam1014@gmail.com"
         );
 
-    public string DefaultWatermark { get; }
-    public string WatermarkRawTextUri { get; }
-    private string? watermarkCache;
+    public string DefaultInfoString { get; }
+    public string InfoStringRawTextUri { get; }
+    private string? infoCache;
+    private Func<string, string>? Formatter { get; }
 
-    public SoftwareInfo(string watermarkRawTextUri, string defaultWatermark)
+    public SoftwareInfo(string infoStringRawTextUri, string defaultInfoString, Func<string, string>? formatter = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(watermarkRawTextUri);
-        ArgumentException.ThrowIfNullOrWhiteSpace(defaultWatermark);
+        ArgumentException.ThrowIfNullOrWhiteSpace(infoStringRawTextUri);
+        ArgumentException.ThrowIfNullOrWhiteSpace(defaultInfoString);
 
-        WatermarkRawTextUri = watermarkRawTextUri;
-        DefaultWatermark = defaultWatermark;
+        InfoStringRawTextUri = infoStringRawTextUri;
+        DefaultInfoString = defaultInfoString;
+        Formatter = formatter;
     }
 
-    public string GetWatermark()
-        => GetWatermarkAsync().Preserve().Result;
+    public string GetDefaultInfoStringIfNotCached()
+        => string.IsNullOrWhiteSpace(infoCache) ? DefaultInfoString : infoCache;
 
-    public async ValueTask<string> GetWatermarkAsync()
+    public string GetInfoString()
+        => GetInfoStringAsync().Preserve().Result;
+
+    public async ValueTask<string> GetInfoStringAsync()
     {
-        if (watermarkCache is null || DateTime.Now > nextWatermarkRequest)
+        if (infoCache is null || DateTime.Now > nextInfoStringRequest)
         {
             try
             {
                 using HttpClient client = new();
-                using var msg = await client.GetAsync(WatermarkRawTextUri);
-                watermarkCache = msg.IsSuccessStatusCode is false
-                    ? DefaultWatermark
-                    : await msg.Content.ReadAsStringAsync();
+                using var msg = await client.GetAsync(InfoStringRawTextUri);
+                if (msg.IsSuccessStatusCode is false)
+                    infoCache = DefaultInfoString;
+                else
+                {
+                    var str = await msg.Content.ReadAsStringAsync();
+                    infoCache = Formatter is not null ? Formatter.Invoke(str) : str;
+                }
 
-                nextWatermarkRequest = DateTime.Now + TimeSpan.FromHours(6);
+                nextInfoStringRequest = DateTime.Now + TimeSpan.FromHours(6);
             }
             catch
             {
-                watermarkCache = DefaultWatermark;
-                nextWatermarkRequest = DateTime.Now + TimeSpan.FromMinutes(10);
+                infoCache = DefaultInfoString;
+                nextInfoStringRequest = DateTime.Now + TimeSpan.FromMinutes(10);
             }
         }
 
-        return watermarkCache;
+        return infoCache;
     }
 }

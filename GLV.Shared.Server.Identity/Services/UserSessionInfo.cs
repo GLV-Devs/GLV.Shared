@@ -4,6 +4,7 @@ namespace GLV.Shared.Server.Identity.Services;
 
 public sealed class UserSessionInfo<TUserInfo, TUserKey>(
     TUserKey requesterUserId, 
+    string? username,
     ulong globalPermissions,
     uint userLevel,
     bool refreshable,
@@ -12,6 +13,8 @@ public sealed class UserSessionInfo<TUserInfo, TUserKey>(
     where TUserInfo : IGlvIdentityUser
     where TUserKey : unmanaged, IEquatable<TUserKey>, IFormattable, IParsable<TUserKey>
 {
+    public string? UserName { get; } = username;
+
     public bool Refreshable { get; } = refreshable;
 
     public TUserKey RequesterUserId { get; } = requesterUserId;

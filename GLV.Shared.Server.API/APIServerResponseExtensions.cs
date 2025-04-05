@@ -44,7 +44,7 @@ public static class APIServerResponseExtensions
 
         var resp = ServerResponse.CreateServerResponse(err, controller.HttpContext.TraceIdentifier);
 
-        return new ObjectResult(resp) { StatusCode = 200 };
+        return new ObjectResult(resp) { StatusCode = (int)(err.RecommendedCode ?? HttpStatusCode.BadRequest) };
     }
 
     public static ObjectResult CreateServerResponseResult<TData>(this ControllerBase controller, TData? data)

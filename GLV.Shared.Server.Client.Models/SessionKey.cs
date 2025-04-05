@@ -1,6 +1,6 @@
 ﻿using MessagePack;
 
-namespace GLV.Shared.Server.API.Authorization.Handlers;
+namespace GLV.Shared.Server.Client.Models;
 
 [MessagePackObject]
 public class SessionKey(string key, DateTimeOffset issuedDate, TimeSpan expirationTime)

@@ -20,6 +20,9 @@ public sealed class ServerResponse(string? dataType, string traceId, IEnumerable
     public static IServerResponse CreateServerResponse(IEnumerable<ErrorMessage> errors, string traceIdentifier)
         => new ServerResponse(nameof(ErrorList), traceIdentifier, errors);
 
+    public static IServerResponse CreateServerResponse(string traceIdentifier, params IEnumerable<ErrorMessage> errors)
+        => new ServerResponse(nameof(ErrorList), traceIdentifier, errors);
+
     public static IServerResponse CreateServerResponseFromString(string str, string traceIdentifier)
         => new ServerResponse(
             typeof(string).Name,

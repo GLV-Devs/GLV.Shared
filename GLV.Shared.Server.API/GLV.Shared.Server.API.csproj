@@ -43,6 +43,7 @@
 	  <ProjectReference Include="..\GLV.Shared.EntityFrameworkHosting\GLV.Shared.EntityFrameworkHosting.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.EntityFramework\GLV.Shared.EntityFramework.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Hosting\GLV.Shared.Hosting.csproj" />
+	  <ProjectReference Include="..\GLV.Shared.Server.Client.Models\GLV.Shared.Server.Client.Models.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Server.Data\GLV.Shared.Server.Data.csproj" />
 	</ItemGroup>
 	

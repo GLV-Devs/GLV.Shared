@@ -1,0 +1,42 @@
+﻿@using System.Net.Http
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using GLV.Shared.Blazor.Services
+@using Microsoft.JSInterop
+
+@inject IServiceProvider Services
+@inject ILayoutComponentProvider LayoutComponents
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">AibHub.AibConcierge</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+        @if (LayoutComponents is not null)
+        {
+            @foreach (var comp in LayoutComponents.GetNavBarComponents(Services))
+            {
+                <div class="@comp.NavLinkClass">
+                    <NavLink class="nav-link" href="@comp.Href" Match="@comp.Match">
+                        <span class="@comp.SpanClass" aria-hidden="true"></span> @comp.Name
+                    </NavLink>
+                </div>
+            }
+        }
+    </nav>
+</div>
+

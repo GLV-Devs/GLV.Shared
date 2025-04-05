@@ -1,0 +1,39 @@
+﻿@using GLV.Shared.Blazor.Services
+@inherits LayoutComponentBase
+@inject IServiceProvider Services
+@inject ILayoutComponentProvider LayoutComponents
+
+<div class="page">
+    <div class="sidebar">
+        <GlvNavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            @if (LayoutComponents is not null)
+            {
+                @foreach (var comp in LayoutComponents.GetTopBarComponents(Services))
+                {
+                    @comp
+                }
+            }
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+
+        <div class="footer">
+            <hr />
+            @if (LayoutComponents is not null)
+            {
+                @foreach (var comp in LayoutComponents.GetFooterComponents(Services))
+                {
+                    @comp
+                    <br />
+                }
+            }
+        </div>
+
+    </main>
+</div>

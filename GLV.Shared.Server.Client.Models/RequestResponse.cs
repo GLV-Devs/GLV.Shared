@@ -1,9 +1,10 @@
 ﻿using System.Collections;
 using System.Net;
 using System.Text.Json;
+using GLV.Shared.Data;
 using GLV.Shared.Data.JsonConverters;
 
-namespace GLV.Shared.Data;
+namespace GLV.Shared.Server.Client.Models;
 
 public sealed class RequestResponse
 {
@@ -29,12 +30,12 @@ public static class RequestResponseExtensions
 
     public static IEnumerable<T> GetData<T>(this RequestResponse response)
         => response is { Data: null } or { DataType: null or "" }
-            ? throw new ArgumentException("this RequestResponse did not return data")
+            ? Array.Empty<T>()
             : response.Data.Cast<JsonElement>().Select(x => x.Deserialize<T>(JsonSerializerOptions)!);
 
-    public static T GetSingleData<T>(this RequestResponse response) 
+    public static T? GetSingleData<T>(this RequestResponse response) 
         => response is { Data: null } or { DataType: null or "" }
-                ? throw new ArgumentException("this RequestResponse did not return data")
+                ? default
                 : response.Data.Cast<JsonElement>().Select(x => x.Deserialize<T>(JsonSerializerOptions)!).Single();
 
     public static IEnumerable<ErrorMessage> GetErrors(this RequestResponse? response)

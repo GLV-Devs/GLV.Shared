@@ -2,9 +2,9 @@
 using System.Text;
 using System.Xml.Linq;
 
-namespace GLV.Shared.Data;
+namespace GLV.Shared.Server.Client.Models;
 
 public interface IQueryModel
 {
-    public string ToQueryString();
+    public string ToQueryString(StringBuilder? sb);
 }

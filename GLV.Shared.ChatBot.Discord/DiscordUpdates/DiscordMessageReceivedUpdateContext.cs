@@ -18,15 +18,13 @@ public class DiscordMessageReceivedUpdateContext : DiscordUpdateContext
     {
         MessageObject = messageObject ?? throw new ArgumentNullException(nameof(messageObject));
 
-        var refMessage = MessageObject.Reference?.MessageId;
-        long? refmsid = refMessage is Optional<ulong> rm && rm.IsSpecified ? (long)rm.Value : null;
-
         Message = new(
             MessageObject.Content,
             (long)MessageObject.Id,
-            refmsid,
+            MessageObject.Reference?.GetMessageReferenceInfo(this).ConfigureAwait(false).GetAwaiter().GetResult(),
             MessageObject.Author?.GetUserInfo(),
-            MessageObject.Attachments?.Count is > 0
+            MessageObject.Attachments?.Count is > 0,
+            MessageObject
         );
 
         IsDirectMessage = messageObject.Channel is IDMChannel;

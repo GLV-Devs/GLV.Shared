@@ -19,7 +19,7 @@ public abstract class RepositoryController<TUser, TContext, TModel, TKey, TView,
     protected readonly IRepository<TModel, TKey, TView, TCreateModel, TUpdateModel> Repository = repository ?? throw new ArgumentNullException(nameof(repository));
 
     [FromServices]
-    public TContext Context { get; init; } = null!;
+    public TContext Context { get; set; } = null!;
 
     [NonAction]
     public virtual Task<bool> CheckIfEntityExists<TEntity, TEntityKey>(TEntityKey key)
@@ -35,25 +35,25 @@ public abstract class RepositoryController<TUser, TContext, TModel, TKey, TView,
 
     [NonAction]
     public virtual async Task<IActionResult> QueryEntities(Expression<Func<TModel, bool>> where, IEntityQuery<TModel, TKey>? query = null)
-        => FromSuccessResult(await Repository.QueryEntities(where, query));
+        => this.CreateServerResponseResult(await Repository.QueryEntities(where, query));
 
     [NonAction]
     public virtual async Task<IActionResult> QueryEntities(IEntityQuery<TModel, TKey>? query = null)
-        => FromSuccessResult(await Repository.QueryEntities(query));
+        => this.CreateServerResponseResult(await Repository.QueryEntities(query));
 
     [NonAction]
     public virtual async Task<IActionResult> ViewEntity(TKey key)
-        => FromSuccessResult(await Repository.ViewEntity(key));
+        => this.CreateServerResponseResult(await Repository.ViewEntity(key));
 
     [NonAction]
     public virtual async Task<IActionResult> CreateEntity([FromBody] TCreateModel creationModel)
-        => FromSuccessResult(await Repository.CreateEntity(creationModel));
+        => this.CreateServerResponseResult(await Repository.CreateEntity(creationModel));
 
     [NonAction]
     public virtual async Task<IActionResult> DeleteEntity(TKey key)
-        => FromSuccessResult(await Repository.DeleteEntity(key));
+        => this.CreateServerResponseResult(await Repository.DeleteEntity(key));
 
     [NonAction]
     public virtual async Task<IActionResult> UpdateEntity([FromBody] TUpdateModel update, TKey key)
-        => FromSuccessResult(await Repository.UpdateEntity(update, key));
+        => this.CreateServerResponseResult(await Repository.UpdateEntity(update, key));
 }

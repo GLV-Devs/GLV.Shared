@@ -1,6 +1,7 @@
 ﻿using MessagePack;
+using System.Text.Json;
 
-namespace GLV.Shared.Server.API.Authorization;
+namespace GLV.Shared.Server.Client.Models;
 
 /// <summary>
 /// The JSON data transfer object for the bearer token response typically found in "/login" and "/refresh" responses.
@@ -28,10 +29,10 @@ public sealed class GLVAccessTokenResponse
     public required string AccessToken { get; init; }
 
     /// <summary>
-    /// The number of seconds before the <see cref="AccessToken"/> expires.
+    /// The number of seconds after the Unix Epoch at which the <see cref="AccessToken"/> expires.
     /// </summary>
     /// <remarks>
-    /// This is serialized as "expiresIn": "{ExpiresInSeconds}" using <see cref="JsonSerializerDefaults.Web"/>.
+    /// This is serialized as "expiresIn": "{ExpiresInSeconds}" using <see cref="JsonSerialzierDefaults.Web"/>.
     /// </remarks>
     [Key(2)]
     public required long ExpiresIn { get; init; }

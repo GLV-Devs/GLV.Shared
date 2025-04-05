@@ -5,17 +5,37 @@ using Discord;
 using Discord.Commands;
 using System.Threading.Channels;
 using System;
+using Discord.WebSocket;
 
 namespace GLV.Shared.ChatBot.Discord;
 
 public static class DiscordExtensions
 {
+    public static async Task<MessageReference?> GetMessageReferenceInfo(this global::Discord.MessageReference msg, UpdateContext context)
+    {
+        if (context.Client.UnderlyingBotClientObject is not DiscordSocketClient client)
+            throw new ArgumentException("The UpdateContext does not contian a DiscordSocketClient", nameof(context));
+
+        var msgId = msg.MessageId.Value;
+        var channel = (IMessageChannel)await client.GetChannelAsync(msgId);
+        var msgObject = (await channel.GetMessagesAsync(msg.MessageId.Value, Direction.Around, 1).FlattenAsync()).First();
+
+        return new MessageReference(
+            (long)msgId,
+            msgObject.Content,
+            msgObject.Author.GetUserInfo(),
+            msgObject.Attachments.Count > 0,
+            msgObject
+        );
+    }
+
     public static UserInfo? GetUserInfo(this IUser user)
         => user is not null
             ? new UserInfo(
                 user.Username,
                 user.GlobalName,
-                user.PackDiscordUserId()
+                user.PackDiscordUserId(),
+                user
             )
             : null;
 

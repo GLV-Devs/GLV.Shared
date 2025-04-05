@@ -3,12 +3,25 @@ using System.Runtime.InteropServices;
 using WTelegram.Types;
 using Telegram.Bot.Types.Enums;
 using System.Runtime.CompilerServices;
+using Telegram.Bot.Types;
+using TLMessage = Telegram.Bot.Types.Message;
 
 namespace GLV.Shared.ChatBot.Telegram;
 
 public static class TelegramExtensions
 {
-    public static UserInfo GetUserInfo(this User u)
+    public static MessageReference? GetMessageReference(this TLMessage? receivedMessage)
+        => receivedMessage is null || receivedMessage.ReplyToMessage is not TLMessage refMsg
+        ? null
+        : new MessageReference(
+            refMsg.Id,
+            refMsg.Text,
+            refMsg.From?.GetUserInfo(),
+            refMsg.Type != MessageType.Text,
+            refMsg
+        );
+
+    public static UserInfo GetUserInfo(this WTelegram.Types.User u)
         => new(
             u.Username,
             string.IsNullOrWhiteSpace(u.FirstName) is false
@@ -16,7 +29,8 @@ public static class TelegramExtensions
                     ? $"{u.FirstName} {u.LastName}"
                     : u.FirstName
                 : null,
-            u.PackTelegramUserId()
+            u.PackTelegramUserId(),
+            u
         );
 
     public static UserInfo GetUserInfo(this global::Telegram.Bot.Types.User u)
@@ -27,10 +41,11 @@ public static class TelegramExtensions
                     ? $"{u.FirstName} {u.LastName}"
                     : u.FirstName
                 : null,
-            u.PackTelegramUserId()
+            u.PackTelegramUserId(),
+            u
         );
 
-    public static Guid PackTelegramUserId(this User user)
+    public static Guid PackTelegramUserId(this WTelegram.Types.User user)
         => MemoryMarshal.Cast<long, Guid>([0, user.Id])[0];
 
     public static Guid PackTelegramUserId(this global::Telegram.Bot.Types.User user)
@@ -99,7 +114,7 @@ public static class TelegramExtensions
         return id;
     }
 
-    public static Guid GetTelegramConversationId(this Update update, string? chatBotId = null) => update.Type switch
+    public static Guid GetTelegramConversationId(this global::Telegram.Bot.Types.Update update, string? chatBotId = null) => update.Type switch
     {
         UpdateType.Message => GetTelegramMessageConversationId(update.Message!.Chat.Id, chatBotId),
         UpdateType.InlineQuery => GetTelegramMessageConversationId(update.InlineQuery!.From.Id, chatBotId),
