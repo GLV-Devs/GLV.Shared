@@ -9,4 +9,10 @@ namespace GLV.Shared.Blazor.Components.Layout;
 
 public partial class GlvMainLayout
 {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        if (LayoutComponents is not null)
+            LayoutComponents.NavMenuStateHasChangedCallback = StateHasChanged;
+    }
 }

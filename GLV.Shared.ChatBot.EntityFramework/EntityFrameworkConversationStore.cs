@@ -59,13 +59,28 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
             if (skipCache is false && Cache is IConversationStoreCache cache && cache.TryGetConversationContext(conversationId, out var convo))
                 return new(convo, ConversationContextStatus.ConversationWasObtained);
 
-            var cc = (await context.Database
-                                    .GetDbConnection()
-                                    .QueryFirstOrDefaultAsync<TContextModel>(
-                                        $"select * from {GetContextModelTableName()} where ConversationId = '{conversationId}'",
-                                        commandTimeout: 120
-                                    )
-                    );
+            TContextModel? cc = null;
+
+            for(int i = 0; i < 3; i++)
+                try
+                {
+                    cc = await context.Database
+                                      .GetDbConnection()
+                                      .QueryFirstOrDefaultAsync<TContextModel>(
+                                          $"select * from {GetContextModelTableName()} where ConversationId = '{conversationId}'",
+                                          commandTimeout: 120
+                                      );
+
+                    break;
+                }
+                catch(Exception e)
+                {
+                    if (e.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase) is false)
+                        throw;
+                }
+
+            if (cc == null)
+                throw new InvalidOperationException("The database timed out too many times");
 
             //await context.Set<TContextModel>().FirstOrDefaultAsync(x => x.ConversationId == conversationId);
             if (cc is null)

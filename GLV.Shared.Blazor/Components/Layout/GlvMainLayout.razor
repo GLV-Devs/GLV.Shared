@@ -1,10 +1,10 @@
 ﻿@using GLV.Shared.Blazor.Services
 @inherits LayoutComponentBase
 @inject IServiceProvider Services
-@inject ILayoutComponentProvider LayoutComponents
+@inject LayoutComponentProvider LayoutComponents
 
 <div class="page">
-    <div class="sidebar">
+    <div class="sidebar" style="@LayoutComponents?.NavBarStyleSwitch.StateString">
         <GlvNavMenu />
     </div>
 

@@ -1,6 +1,8 @@
-﻿namespace GLV.Shared.Data.Identifiers;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
-#if Snowflake128
+namespace GLV.Shared.Data.Identifiers;
+
 [StructLayout(LayoutKind.Explicit)]
 public readonly struct Snowflake128 : IEquatable<Snowflake128>, IComparable<Snowflake128>, IParsable<Snowflake128>, IFormattable
 {
@@ -10,7 +12,7 @@ public readonly struct Snowflake128 : IEquatable<Snowflake128>, IComparable<Snow
     private static ushort LastIndex;
 
     [FieldOffset(0)]
-    private readonly UInt128 asUInt128;
+    private readonly Guid asGuid;
 
     [FieldOffset(0)]
     private readonly long timeStampUtc;
@@ -28,10 +30,11 @@ public readonly struct Snowflake128 : IEquatable<Snowflake128>, IComparable<Snow
         this.machineId = machineId;
     }
 
+    public Snowflake128(Guid value)
+        => asGuid = value;
+
     public Snowflake128(UInt128 value)
-    {
-        asUInt128 = value;
-    }
+        => asGuid = MemoryMarshal.Cast<UInt128, Guid>(MemoryMarshal.CreateReadOnlySpan(in value, 1))[0];
 
     public static long GetSnowflake128TimeStamp()
         => DateTime.UtcNow.Ticks;
@@ -48,7 +51,10 @@ public readonly struct Snowflake128 : IEquatable<Snowflake128>, IComparable<Snow
         return new Snowflake128(stamp, LastIndex++, Snowflake128MachineId);
     }
 
-    public UInt128 AsUInt128() => asUInt128;
+    public UInt128 AsUInt128()
+        => MemoryMarshal.Cast<Guid, UInt128>(MemoryMarshal.CreateReadOnlySpan(in asGuid, 1))[0];
+
+    public Guid AsGuid() => asGuid;
 
     public DateTime TimeStamp => new(timeStampUtc, DateTimeKind.Utc);
 
@@ -57,17 +63,17 @@ public readonly struct Snowflake128 : IEquatable<Snowflake128>, IComparable<Snow
     public ushort MachineId => machineId;
 
     public bool Equals(Snowflake128 other)
-        => asUInt128 == other.asUInt128;
+        => asGuid == other.asGuid;
 
     public int CompareTo(Snowflake128 other)
-        => asUInt128.CompareTo(other.asUInt128);
+        => asGuid.CompareTo(other.asGuid);
 
     public static Snowflake128 Parse(string s, IFormatProvider? provider)
-        => new(UInt128.Parse(s, provider));
+        => new(Guid.Parse(s, provider));
 
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out Snowflake128 result)
     {
-        if (UInt128.TryParse(s, provider, out var value))
+        if (Guid.TryParse(s, provider, out var value))
         {
             result = new(value);
             return true;
@@ -78,16 +84,16 @@ public readonly struct Snowflake128 : IEquatable<Snowflake128>, IComparable<Snow
     }
 
     public string ToString(string? format, IFormatProvider? formatProvider)
-        => asUInt128.ToString(format, formatProvider);
+        => asGuid.ToString(format, formatProvider);
 
     public override string ToString()
         => ToString(null, null);
 
     public override bool Equals(object? obj)
-        => asUInt128.Equals(obj);
+        => asGuid.Equals(obj);
 
     public override int GetHashCode()
-        => asUInt128.GetHashCode();
+        => asGuid.GetHashCode();
 
     public static bool operator ==(Snowflake128 left, Snowflake128 right)
     {
@@ -119,4 +125,3 @@ public readonly struct Snowflake128 : IEquatable<Snowflake128>, IComparable<Snow
         return left.CompareTo(right) >= 0;
     }
 }
-#endif
