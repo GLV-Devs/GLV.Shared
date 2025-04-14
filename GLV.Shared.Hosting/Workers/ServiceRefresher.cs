@@ -19,7 +19,7 @@ public class ServiceRefresher(ILogger<ServiceRefresher> log, IServiceProvider se
             servicesInitialized = true;
         } // Thanks to this lock, even if the operation hasn't completed, it'll already be concurrently marked as such. So only the first requester will have to wait
 
-        using (services.CreateScope().GetRequiredService<ILogger<ServiceRefresher>>(out var log).GetServices<IRefreshableService>(out var refreshable))
+        using (var scope = services.CreateScope().GetRequiredService<ILogger<ServiceRefresher>>(out var log).GetServices<IRefreshableService>(out var refreshable))
         {
             log.LogInformation("Initializing refreshable services");
             try
@@ -27,7 +27,7 @@ public class ServiceRefresher(ILogger<ServiceRefresher> log, IServiceProvider se
                 foreach (var init in refreshable)
                 {
                     log.LogInformation("Initializing service {type}", init.GetType().Name);
-                    await init.Initialize();
+                    await init.Initialize(scope.ServiceProvider);
                 }
             }
             catch (Exception e)
@@ -51,10 +51,10 @@ public class ServiceRefresher(ILogger<ServiceRefresher> log, IServiceProvider se
 
             try
             {
-                using (services.CreateScope().GetServices<IRefreshableService>(out var refreshable))
+                using (var scope = services.CreateScope().GetServices<IRefreshableService>(out var refreshable))
                 {
                     foreach (var refr in refreshable)
-                        await refr.Refresh();
+                        await refr.Refresh(scope.ServiceProvider);
                 }
             }
             catch (Exception e)

@@ -1,10 +1,12 @@
-﻿using GLV.Shared.EntityFrameworkHosting.Options;
+﻿using GLV.Shared.EntityFramework.Options;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
-namespace GLV.Shared.EntityFrameworkHosting;
+namespace GLV.Shared.EntityFramework;
 
 public static class DatabaseServiceExtensions
 {
@@ -15,6 +17,7 @@ public static class DatabaseServiceExtensions
         string? mySqlMigrationsAssemblyName = null,
         string? sqliteMigrationsAssemblyName = null,
         string? configSectionName = null,
+        Action<object>? optionsBuilder = null,
         bool setAsDefaultDbContext = false
     )
         where TContext : DbContext
@@ -36,6 +39,7 @@ public static class DatabaseServiceExtensions
                     if (string.IsNullOrWhiteSpace(sqlServerMigrationsAssemblyName) is false)
                         o.MigrationsAssembly(sqlServerMigrationsAssemblyName);
                     o.EnableRetryOnFailure();
+                    optionsBuilder?.Invoke(o);
                 }
             ));
         }
@@ -53,6 +57,8 @@ public static class DatabaseServiceExtensions
                         o.MigrationsAssembly(mySqlMigrationsAssemblyName);
                     o.EnableRetryOnFailure(10);
                     o.CommandTimeout(120);
+                    o.SchemaBehavior(MySqlSchemaBehavior.Translate, (schema, obj) => $"{schema}.{obj}");
+                    optionsBuilder?.Invoke(o);
                 }
             ));
         }
@@ -71,6 +77,7 @@ public static class DatabaseServiceExtensions
                 {
                     if (string.IsNullOrWhiteSpace(sqliteMigrationsAssemblyName) is false)
                         o.MigrationsAssembly(sqliteMigrationsAssemblyName);
+                    optionsBuilder?.Invoke(o);
                 }));
         }
         else

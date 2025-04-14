@@ -2,6 +2,6 @@
 
 public interface IRefreshableService
 {
-    public Task Initialize();
-    public Task Refresh();
+    public Task Initialize(IServiceProvider services);
+    public Task Refresh(IServiceProvider services);
 }

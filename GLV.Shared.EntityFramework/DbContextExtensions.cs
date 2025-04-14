@@ -1,5 +1,6 @@
 ﻿using GLV.Shared.Common;
 using GLV.Shared.Data;
+using GLV.Shared.Hosting;
 using GLV.Shared.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,6 +57,36 @@ public static class DbContextExtensions
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<TContext>();
         await db.Database.MigrateAsync();
+    }
+
+    public static async Task InitDatabase<TContext>(this IServiceProvider services, Func<TContext, Task>? debugSeed = null) where TContext : DbContext
+    {
+        bool resetdb = Environment.CommandLine.Contains(" -reset-db");
+        using (services.CreateScope().GetRequiredService<TContext>(out var context))
+        {
+            if (resetdb)
+            {
+                Console.WriteLine(" >!> Resetting Database");
+                await context.Database.EnsureDeletedAsync();
+            }
+
+            await context.Database.MigrateAsync();
+
+            Console.WriteLine(" >!> DataBase Initialized");
+
+            if (Environment.CommandLine.Contains(" -reset-db -k"))
+            {
+                Console.WriteLine(" >!> Found the -k flag in -reset-db, killing app");
+                Environment.Exit(0);
+            }
+
+            else if (debugSeed is not null && Environment.CommandLine.Contains(" -reset-db -s"))
+            {
+                Console.WriteLine(" >!> Seeding reset Database with debugging info");
+                await debugSeed.Invoke(context);
+                await context.SaveChangesAsync();
+            }
+        }
     }
 
     /// <summary>

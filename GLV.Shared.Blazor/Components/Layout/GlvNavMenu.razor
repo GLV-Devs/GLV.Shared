@@ -21,18 +21,13 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
         @if (LayoutComponents is not null)
         {
             @foreach (var comp in LayoutComponents.GetNavBarComponents(Services))
             {
                 <div class="@comp.NavLinkClass">
                     <NavLink class="nav-link" href="@comp.Href" Match="@comp.Match">
-                        <span class="@comp.SpanClass" aria-hidden="true"></span> @comp.Name
+                        <span class="@comp.SpanClass" style="@comp.SpanStyle" aria-hidden="true"></span> @comp.Name
                     </NavLink>
                 </div>
             }

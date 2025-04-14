@@ -12,6 +12,7 @@ public record NavBarEntry(
     string Name,
     string Href,
     string? SpanClass = null,
+    string? SpanStyle = null,
     string NavLinkClass = "nav-item px-3",
     NavLinkMatch Match = NavLinkMatch.All
 );

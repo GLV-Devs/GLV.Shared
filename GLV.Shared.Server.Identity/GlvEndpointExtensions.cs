@@ -83,7 +83,12 @@ public static class GlvEndpointExtensions
         TUserLoginModel,
         TUserSessionView
     > 
-    (this WebApplication app, string baseRoute = "api/identity", string authorizationSchemeName = BearerTokenDefaults.AuthenticationScheme)
+    (
+        this WebApplication app, 
+        string baseRoute = "api/identity", 
+        string authorizationSchemeName = BearerTokenDefaults.AuthenticationScheme, 
+        string endpointTag = "GLV Media"
+    )
         where TContext : DbContext
         where TUserInfo : class, IKeyed<TUserInfo, TUserKey>, IGlvIdentityUser
         where TUserKey : unmanaged, IEquatable<TUserKey>, IFormattable, IParsable<TUserKey>
@@ -95,13 +100,13 @@ public static class GlvEndpointExtensions
 
         List<string> authSchemes = [authorizationSchemeName];
 
-        app.MapPut(baseRoute, Login);
-        app.MapPost(baseRoute, Create);
-        app.MapPatch($"{baseRoute}/password", ChangePassword).RequireAuthorization(ConfigurePolicy);
-        app.MapPatch($"{baseRoute}/permissions/{{userId}}", ChangePermissions).RequireAuthorization(ConfigurePolicy);
-        app.MapPatch($"{baseRoute}/refresh", Refresh).RequireAuthorization(ConfigurePolicy);
-        app.MapGet(baseRoute, GetSessionInfo).RequireAuthorization(ConfigurePolicy);
-        app.MapDelete(baseRoute, (Delegate)Logout).RequireAuthorization(ConfigurePolicy);
+        app.MapPut(baseRoute, Login).WithTags(endpointTag);
+        app.MapPost(baseRoute, Create).WithTags(endpointTag);
+        app.MapPatch($"{baseRoute}/password", ChangePassword).RequireAuthorization(ConfigurePolicy).WithTags(endpointTag);
+        app.MapPatch($"{baseRoute}/permissions/{{userId}}", ChangePermissions).RequireAuthorization(ConfigurePolicy).WithTags(endpointTag);
+        app.MapPatch($"{baseRoute}/refresh", Refresh).RequireAuthorization(ConfigurePolicy).WithTags(endpointTag);
+        app.MapGet(baseRoute, GetSessionInfo).RequireAuthorization(ConfigurePolicy).WithTags(endpointTag);
+        app.MapDelete(baseRoute, (Delegate)Logout).RequireAuthorization(ConfigurePolicy).WithTags(endpointTag);
 
         return app;
 

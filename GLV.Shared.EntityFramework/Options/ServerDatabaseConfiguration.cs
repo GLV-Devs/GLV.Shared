@@ -1,4 +1,4 @@
-﻿namespace GLV.Shared.EntityFrameworkHosting.Options;
+﻿namespace GLV.Shared.EntityFramework.Options;
 
 public record ServerDatabaseConfiguration(
     DatabaseType DatabaseType,
