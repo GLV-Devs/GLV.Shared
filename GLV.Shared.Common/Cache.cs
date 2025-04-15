@@ -10,9 +10,14 @@ namespace GLV.Shared.Common;
 
 public class Cache<TKey, TCachedItem> where TKey : notnull
 {
-    private readonly Func<TKey, TCachedItem?, ValueTask<bool>>? IsItemValidChecker;
+    private readonly Func<TKey, CacheEntry, ValueTask<bool>>? IsItemValidChecker;
+    public sealed class CacheEntry(TCachedItem? item, object? userData)
+    {
+        public TCachedItem? Item { get; } = item;
+        public object? UserData { get; set; } = userData;
+    }
 
-    public Cache(Func<TKey, TCachedItem?, ValueTask<bool>>? isItemValidChecker = null, IEqualityComparer<TKey>? equalityComparer = null)
+    public Cache(Func<TKey, CacheEntry, ValueTask<bool>>? isItemValidChecker = null, IEqualityComparer<TKey>? equalityComparer = null)
     {
         IsItemValidChecker = isItemValidChecker;
         cachedItems = new(equalityComparer ?? EqualityComparer<TKey>.Default);
@@ -21,7 +26,7 @@ public class Cache<TKey, TCachedItem> where TKey : notnull
             BackgroundTaskStore.Add(Task.Run(RunCleanup));
     }
 
-    private readonly Dictionary<TKey, TCachedItem?> cachedItems;
+    private readonly Dictionary<TKey, CacheEntry> cachedItems;
 
     private async Task RunCleanup()
     {
@@ -38,14 +43,31 @@ public class Cache<TKey, TCachedItem> where TKey : notnull
         }
     }
 
-    public async ValueTask<NullableSuccess<TCachedItem?>> TryGetItem(TKey key) 
-        => IsItemValidChecker is not null
-            ? cachedItems.TryGetValue(key, out TCachedItem? item) && await IsItemValidChecker(key, item) ? item : NullableSuccess<TCachedItem?>.Failure
-            : cachedItems.TryGetValue(key, out item) ? item : NullableSuccess<TCachedItem?>.Failure;
+    public async ValueTask<NullableSuccess<TCachedItem?>> TryGetItem(TKey key)
+    {
+        return IsItemValidChecker is not null
+                ? cachedItems.TryGetValue(key, out var item) && await IsItemValidChecker(key, item) ? item.Item : NullableSuccess<TCachedItem?>.Failure
+                : cachedItems.TryGetValue(key, out item) ? item.Item : NullableSuccess<TCachedItem?>.Failure;
+    }
 
-    public bool InsertItem(TKey key, TCachedItem? item)
-        => cachedItems.TryAdd(key, item);
+    public bool InsertItem(TKey key, TCachedItem? item, object? userData = null)
+        => cachedItems.TryAdd(key, new(item, userData));
+
+    public bool RemoveItem(TKey key)
+        => cachedItems.Remove(key, out var entry);
 
     public bool RemoveItem(TKey key, out TCachedItem? item)
-        => cachedItems.Remove(key, out item);
+    {
+        var val = cachedItems.Remove(key, out var entry);
+        item = entry is null ? default : entry.Item;
+        return val;
+    }
+
+    public bool RemoveItem(TKey key, out TCachedItem? item, out object? userData)
+    {
+        var val = cachedItems.Remove(key, out var entry);
+        item = entry is null ? default : entry.Item;
+        userData = entry is null ? default : entry.UserData;
+        return val;
+    }
 }

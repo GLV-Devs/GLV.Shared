@@ -20,7 +20,7 @@ public static class ServiceExtensions
 
     public static IServiceCollection AddGLVCache<TKey, TCachedItem>(
         this IServiceCollection services,
-        Func<TKey, TCachedItem?, ValueTask<bool>>? istemValidChecker,
+        Func<TKey, Cache<TKey, TCachedItem>.CacheEntry, ValueTask<bool>>? istemValidChecker,
         IEqualityComparer<TKey>? equalityComparer = null
     ) where TKey : notnull
     {
