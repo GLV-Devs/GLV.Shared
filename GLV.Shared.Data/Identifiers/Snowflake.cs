@@ -28,13 +28,13 @@ public readonly struct Snowflake : IEquatable<Snowflake>, IComparable<Snowflake>
     private readonly long aslong;
 
     [FieldOffset(0)]
-    private readonly int timeStamp;
+    private readonly ushort machineId;
 
-    [FieldOffset(sizeof(int))]
+    [FieldOffset(sizeof(ushort))]
     private readonly ushort index;
 
-    [FieldOffset(sizeof(int) + sizeof(ushort))]
-    private readonly ushort machineId;
+    [FieldOffset(sizeof(ushort) * 2)]
+    private readonly int timeStamp;
 
     public Snowflake(int timeStamp, ushort index, ushort machineId)
     {
