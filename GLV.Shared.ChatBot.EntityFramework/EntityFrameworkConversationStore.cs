@@ -60,6 +60,7 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
                 return new(convo, ConversationContextStatus.ConversationWasObtained);
 
             TContextModel? cc = null;
+            bool success = false;
 
             for(int i = 0; i < 3; i++)
                 try
@@ -70,7 +71,7 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
                                           $"select * from {GetContextModelTableName()} where ConversationId = '{conversationId}'",
                                           commandTimeout: 120
                                       );
-
+                    success = true;
                     break;
                 }
                 catch(Exception e)
@@ -79,7 +80,7 @@ public class EntityFrameworkConversationStore<TContextModel, TContextModelKey>(
                         throw;
                 }
 
-            if (cc == null)
+            if (success is false)
                 throw new InvalidOperationException("The database timed out too many times");
 
             //await context.Set<TContextModel>().FirstOrDefaultAsync(x => x.ConversationId == conversationId);

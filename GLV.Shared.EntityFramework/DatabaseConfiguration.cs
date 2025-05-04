@@ -7,7 +7,7 @@ public record class DatabaseConfiguration(DatabaseType DatabaseType, string? SQL
         ArgumentNullException.ThrowIfNull(input);
         return input.Replace(
                 "{appdata}",
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Reportes", subfolder ?? "", "data"),
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 StringComparison.OrdinalIgnoreCase
             ).Replace('/', Path.DirectorySeparatorChar)
             .Replace('\\', Path.DirectorySeparatorChar);

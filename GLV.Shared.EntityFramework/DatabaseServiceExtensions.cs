@@ -69,8 +69,10 @@ public static class DatabaseServiceExtensions
 
             var conns = DatabaseConfiguration.FormatConnectionString(dbconf.SQLiteConnectionString);
             var path = Data.DataRegexes.SQLiteConnectionStringFilePath().Match(conns).Groups[1].ValueSpan;
-            var dir = Path.GetDirectoryName(path);
-            Directory.CreateDirectory(new string(dir));
+            var dir = new string(Path.GetDirectoryName(path));
+            Directory.CreateDirectory(dir);
+
+            Console.WriteLine($" >!> Using SQLite at {dir} for Context: {typeof(TContext).Name}");
             services.AddDbContext<TContext>(x => x.UseSqlite(
                 conns,
                 o =>

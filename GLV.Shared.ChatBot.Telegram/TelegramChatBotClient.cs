@@ -50,10 +50,17 @@ public class TelegramChatBotClient : IChatBotClient
         }
     }
 
-    protected virtual TelegramUpdateContext PrepareUpdateContext(WTelegram.Types.Update update) 
+    public static TelegramUpdateContext PrepareDefaultUpdateContext(
+        WTelegram.Types.Update update, 
+        IChatBotClient client, 
+        Func<Update, IChatBotClient, Guid>? conversationIdFactory
+    )
         => update.Type is UpdateType.MyChatMember
-            ? new TelegramUpdateContext(update, this, ConversationIdFactory?.Invoke(update, this), true)
-            : new TelegramUpdateContext(update, this, ConversationIdFactory?.Invoke(update, this));
+            ? new TelegramUpdateContext(update, client, conversationIdFactory?.Invoke(update, client), true)
+            : new TelegramUpdateContext(update, client, conversationIdFactory?.Invoke(update, client));
+
+    protected virtual TelegramUpdateContext PrepareUpdateContext(WTelegram.Types.Update update)
+        => PrepareDefaultUpdateContext(update, this, ConversationIdFactory);
 
     public string Platform => UpdateContext.TelegramPlatform;
     public ChatBotManager Manager { get; }
