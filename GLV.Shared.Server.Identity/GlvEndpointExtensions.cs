@@ -90,7 +90,7 @@ public static class GlvEndpointExtensions
         string endpointTag = "GLV Media"
     )
         where TContext : DbContext
-        where TUserInfo : class, IKeyed<TUserInfo, TUserKey>, IGlvIdentityUser
+        where TUserInfo : IdentityUser<TUserKey>, IKeyed<TUserInfo, TUserKey>, IGlvIdentityUser
         where TUserKey : unmanaged, IEquatable<TUserKey>, IFormattable, IParsable<TUserKey>
         where TUserLoginModel : IGlvIdentityUserLoginModel
         where TUserSessionView : IGlvIdentitySessionView
