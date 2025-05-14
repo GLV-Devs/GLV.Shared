@@ -1,4 +1,5 @@
-﻿using System.Collections.Frozen;
+﻿using GLV.Shared.Data;
+using System.Collections.Frozen;
 
 namespace GLV.Shared.Server.Identity.Services;
 

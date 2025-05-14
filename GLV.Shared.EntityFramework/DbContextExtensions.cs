@@ -20,6 +20,18 @@ public static class DbContextExtensions
         cache.InsertItem(key, item);
     }
 
+    public static ValueTask<TItem?> GetFromCacheOrContext<TKey, TItem>
+        (this Cache<TKey, TItem> cache, DbContext context, TKey key, bool insertIfFoundOnContext = true)
+        where TKey : unmanaged
+        where TItem : class, IDbModel<TItem, TKey>
+        => GetFromCacheOrContext(context, cache, key, insertIfFoundOnContext);
+
+    public static ValueTask<TItem?> GetFromCacheOrContext<TItem, TQueryKey>
+        (this Cache<TQueryKey, TItem> cache, DbContext context, TQueryKey key, Expression<Func<TItem, bool>> queryExpression, bool insertIfFoundOnContext = true)
+        where TQueryKey : notnull
+        where TItem : class
+        => GetFromCacheOrContext(context, cache, key, queryExpression, insertIfFoundOnContext);
+
     public static async ValueTask<TItem?> GetFromCacheOrContext<TItem, TQueryKey>
         (this DbContext context, Cache<TQueryKey, TItem> cache, TQueryKey key, Expression<Func<TItem, bool>> queryExpression, bool insertIfFoundOnContext = true)
         where TQueryKey : notnull

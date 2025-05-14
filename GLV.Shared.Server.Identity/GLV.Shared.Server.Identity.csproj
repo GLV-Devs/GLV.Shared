@@ -34,10 +34,11 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\..\Monitor.SAT\GLV.Shared\GLV.Shared.Data\GLV.Shared.Data.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Common\GLV.Shared.Common.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.DataTransfer\GLV.Shared.DataTransfer.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
