@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Security.Principal;
+using GLV.Shared.Data;
 using GLV.Shared.Server.API;
 using GLV.Shared.Server.API.Authorization;
 using GLV.Shared.Server.API.Authorization.Implementations;

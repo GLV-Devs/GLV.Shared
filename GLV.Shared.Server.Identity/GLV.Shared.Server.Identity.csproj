@@ -38,6 +38,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\..\Monitor.SAT\GLV.Shared\GLV.Shared.Data\GLV.Shared.Data.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Common\GLV.Shared.Common.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.DataTransfer\GLV.Shared.DataTransfer.csproj" />
 	  <ProjectReference Include="..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
