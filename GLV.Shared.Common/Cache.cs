@@ -11,10 +11,31 @@ namespace GLV.Shared.Common;
 public class Cache<TKey, TCachedItem> where TKey : notnull
 {
     private readonly Func<TKey, CacheEntry, ValueTask<bool>>? IsItemValidChecker;
-    public sealed class CacheEntry(TCachedItem? item, object? userData)
+
+    public sealed class CacheEntry(TKey key, TCachedItem? item, object? userData)
     {
-        public TCachedItem? Item { get; } = item;
+        public readonly struct CreationInfo(DateTime? storedAt)
+        {
+            public DateTime StoredAt { get; } = storedAt ?? DateTime.Now;
+            public TimeSpan Age => DateTime.Now - StoredAt;
+        }
+
+        public TKey Key { get; internal set; } = key;
+        public TCachedItem? Item { get; internal set; } = item;
         public object? UserData { get; set; } = userData;
+        public CreationInfo Info { get; internal set; } = new();
+
+        internal bool Invalidated;
+
+        internal async ValueTask<bool> CheckValidity(Func<TKey, CacheEntry, ValueTask<bool>>? isItemValidChecker)
+        {
+            if (Invalidated is false && isItemValidChecker is not null)
+                Invalidated = !await isItemValidChecker.Invoke(Key, this);
+
+            return !Invalidated;
+        }
+
+        public void Invalidate() => Invalidated = true;
     }
 
     public Cache(Func<TKey, CacheEntry, ValueTask<bool>>? isItemValidChecker = null, IEqualityComparer<TKey>? equalityComparer = null)
@@ -35,7 +56,9 @@ public class Cache<TKey, TCachedItem> where TKey : notnull
         {
             foreach (var (key, item) in cachedItems)
             {
-                if (await IsItemValidChecker.Invoke(key, item)) continue;
+                if (await item.CheckValidity(IsItemValidChecker))
+                    continue;
+
                 cachedItems.Remove(key);
             }
 
@@ -43,15 +66,14 @@ public class Cache<TKey, TCachedItem> where TKey : notnull
         }
     }
 
+    public async ValueTask<NullableSuccess<CacheEntry?>> TryGetEntry(TKey key)
+        => cachedItems.TryGetValue(key, out var item) && await item.CheckValidity(IsItemValidChecker) ? item : NullableSuccess<CacheEntry?>.Failure;
+
     public async ValueTask<NullableSuccess<TCachedItem?>> TryGetItem(TKey key)
-    {
-        return IsItemValidChecker is not null
-                ? cachedItems.TryGetValue(key, out var item) && await IsItemValidChecker(key, item) ? item.Item : NullableSuccess<TCachedItem?>.Failure
-                : cachedItems.TryGetValue(key, out item) ? item.Item : NullableSuccess<TCachedItem?>.Failure;
-    }
+        => cachedItems.TryGetValue(key, out var item) && await item.CheckValidity(IsItemValidChecker) ? item.Item : NullableSuccess<TCachedItem?>.Failure;
 
     public bool InsertItem(TKey key, TCachedItem? item, object? userData = null)
-        => cachedItems.TryAdd(key, new(item, userData));
+        => cachedItems.TryAdd(key, new(key, item, userData));
 
     public bool RemoveItem(TKey key)
         => cachedItems.Remove(key, out var entry);
