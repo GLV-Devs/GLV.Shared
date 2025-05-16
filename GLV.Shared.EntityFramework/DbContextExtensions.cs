@@ -86,17 +86,20 @@ public static class DbContextExtensions
 
             Console.WriteLine(" >!> DataBase Initialized");
 
-            if (Environment.CommandLine.Contains(" -reset-db -k"))
+            if (resetdb)
             {
-                Console.WriteLine(" >!> Found the -k flag in -reset-db, killing app");
-                Environment.Exit(0);
-            }
+                if (debugSeed is not null && Environment.CommandLine.Contains(" -s"))
+                {
+                    Console.WriteLine(" >!> Seeding reset Database with debugging info");
+                    await debugSeed.Invoke(context);
+                    await context.SaveChangesAsync();
+                }
 
-            else if (debugSeed is not null && Environment.CommandLine.Contains(" -reset-db -s"))
-            {
-                Console.WriteLine(" >!> Seeding reset Database with debugging info");
-                await debugSeed.Invoke(context);
-                await context.SaveChangesAsync();
+                if (Environment.CommandLine.Contains(" -k"))
+                {
+                    Console.WriteLine(" >!> Found the -k flag in -reset-db, killing app");
+                    Environment.Exit(0);
+                }
             }
         }
     }

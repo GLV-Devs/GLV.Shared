@@ -79,11 +79,11 @@ public static class TelegramExtensions
         }
         else
         {
-            MemoryMarshal.Cast<Guid, long>(MemoryMarshal.CreateSpan(ref id, 1))[0] = chatId;
             var span = MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref id, 1));
             Span<byte> md5buffer = stackalloc byte[Unsafe.SizeOf<Guid>()];
             botId.TryHashToMD5(md5buffer);
             md5buffer[..sizeof(long)].CopyTo(span[sizeof(long)..]);
+            MemoryMarshal.Cast<Guid, long>(MemoryMarshal.CreateSpan(ref id, 1))[0] = chatId;
         }
         return id;
     }
