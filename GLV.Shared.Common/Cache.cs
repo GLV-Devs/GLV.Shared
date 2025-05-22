@@ -75,6 +75,17 @@ public class Cache<TKey, TCachedItem> where TKey : notnull
     public bool InsertItem(TKey key, TCachedItem? item, object? userData = null)
         => cachedItems.TryAdd(key, new(key, item, userData));
 
+    public bool InsertItem(TKey key, TCachedItem? item, object? userData, [NotNullWhen(true)] out CacheEntry? entry)
+    {
+        if (cachedItems.TryGetValue(key, out entry) is false)
+        {
+            entry = new(key, item, userData);
+            return cachedItems.TryAdd(key, entry);
+        }
+
+        return false;
+    }
+
     public bool RemoveItem(TKey key)
         => cachedItems.Remove(key, out var entry);
 

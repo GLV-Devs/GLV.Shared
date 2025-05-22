@@ -32,6 +32,52 @@ public static class DbContextExtensions
         where TItem : class
         => GetFromCacheOrContext(context, cache, key, queryExpression, insertIfFoundOnContext);
 
+    public static ValueTask<Cache<TKey, TItem>.CacheEntry?> GetOrCreateEntry<TKey, TItem>
+        (this Cache<TKey, TItem> cache, DbContext context, TKey key)
+        where TKey : unmanaged
+        where TItem : class, IDbModel<TItem, TKey>
+        => GetOrCreateEntry(context, cache, key);
+
+    public static ValueTask<Cache<TQueryKey, TItem>.CacheEntry?> GetOrCreateEntry<TItem, TQueryKey>
+        (this Cache<TQueryKey, TItem> cache, DbContext context, TQueryKey key, Expression<Func<TItem, bool>> queryExpression)
+        where TQueryKey : notnull
+        where TItem : class
+        => GetOrCreateEntry(context, cache, key, queryExpression);
+
+    public static async ValueTask<Cache<TQueryKey, TItem>.CacheEntry?> GetOrCreateEntry<TItem, TQueryKey>(
+        this DbContext context,
+        Cache<TQueryKey, TItem> cache,
+        TQueryKey key,
+        Expression<Func<TItem, bool>> queryExpression
+    )
+        where TQueryKey : notnull
+        where TItem : class
+    {
+        var result = await cache.TryGetEntry(key);
+        if (result.TryGetResult(out var entry))
+            return entry;
+
+        var item = await context.Set<TItem>().Where(queryExpression).FirstOrDefaultAsync();
+        cache.InsertItem(key, item, null, out entry);
+
+        return entry;
+    }
+
+    public static async ValueTask<Cache<TKey, TItem>.CacheEntry?> GetOrCreateEntry<TKey, TItem>
+        (this DbContext context, Cache<TKey, TItem> cache, TKey key)
+        where TKey : unmanaged
+        where TItem : class, IDbModel<TItem, TKey>
+    {
+        var result = await cache.TryGetEntry(key);
+        if (result.TryGetResult(out var entry))
+            return entry;
+
+        var item = await context.Set<TItem>().FindAsync(key);
+        cache.InsertItem(key, item, null, out entry);
+
+        return entry;
+    }
+
     public static async ValueTask<TItem?> GetFromCacheOrContext<TItem, TQueryKey>
         (this DbContext context, Cache<TQueryKey, TItem> cache, TQueryKey key, Expression<Func<TItem, bool>> queryExpression, bool insertIfFoundOnContext = true)
         where TQueryKey : notnull
