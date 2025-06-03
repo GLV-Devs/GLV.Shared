@@ -97,6 +97,7 @@ public static class ServicesHelper
             type,
             config,
             optionsType,
+            null,
             decoratedOptionsClosureConstructor,
             configureOptionsType,
             configureNamedOptionsConstructor,
@@ -115,6 +116,7 @@ public static class ServicesHelper
         foreach (var (type, attributes) in GetDecoratedTypesFromAssemblies<RegisterOptionsAttribute>(assemblies, skip))
         {
             var optionsType = typeof(IOptions<>).MakeGenericType(type);
+            var optionsMonitorType = attributes.Any(x => x.Monitor) ? typeof(IOptionsMonitor<>).MakeGenericType(type) : null;
             var configureOptionsType = typeof(IConfigureOptions<>).MakeGenericType(type);
             var configureNamedOptionsType = typeof(ConfigureNamedOptions<>).MakeGenericType(type);
             var optionsConfigurationCallbackType = typeof(Action<>).MakeGenericType(type);
@@ -135,6 +137,7 @@ public static class ServicesHelper
                     type,
                     config,
                     optionsType,
+                    optionsMonitorType,
                     decoratedOptionsClosureConstructor,
                     configureOptionsType,
                     configureNamedOptionsConstructor,
@@ -150,6 +153,7 @@ public static class ServicesHelper
             Type type,
             IConfiguration config,
             Type optionsType,
+            Type? optionsMonitorType,
             ConstructorInfo decoratedOptionsClosureConstructor,
             Type configureOptionsType,
             ConstructorInfo configureNamedOptionsConstructor,
