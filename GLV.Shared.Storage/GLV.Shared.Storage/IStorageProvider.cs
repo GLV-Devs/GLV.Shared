@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace GLV.Shared.Storage.Abstractions;
+namespace GLV.Shared.Storage;
 
 public enum EntryType : byte
 {

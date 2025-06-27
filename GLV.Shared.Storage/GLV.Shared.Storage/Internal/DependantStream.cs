@@ -1,4 +1,4 @@
-﻿namespace GLV.Shared.Storage.Abstractions.Internal;
+﻿namespace GLV.Shared.Storage.Internal;
 
 public class DependantStream : Stream
 {

@@ -33,6 +33,9 @@ public abstract class RepositoryController<TUser, TContext, TModel, TKey, TView,
         where TEntityKey : unmanaged
             => Context.Set<TEntity>().FindAsync(key);
 
+    public virtual IActionResult EntityNotFound(string entity, string? query)
+        => this.CreateServerErrorResult(System.Net.HttpStatusCode.NotFound, ErrorMessages.EntityNotFound(entity, query));
+
     [NonAction]
     public virtual async Task<IActionResult> QueryEntities(Expression<Func<TModel, bool>> where, IEntityQuery<TModel, TKey>? query = null)
         => this.CreateServerResponseResult(await Repository.QueryEntities(where, query));
