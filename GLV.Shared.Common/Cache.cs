@@ -47,9 +47,9 @@ public class Cache<TKey, TCachedItem> where TKey : notnull
             BackgroundTaskStore.Add(Task.Run(RunCleanup));
     }
 
-    private readonly Dictionary<TKey, CacheEntry> cachedItems;
+    protected readonly Dictionary<TKey, CacheEntry> cachedItems;
 
-    private async Task RunCleanup()
+    protected virtual async Task RunCleanup()
     {
         Debug.Assert(IsItemValidChecker is not null);
         while (true)

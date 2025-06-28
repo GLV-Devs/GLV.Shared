@@ -13,6 +13,20 @@ namespace GLV.Shared.Server.API;
 
 public static class APIServerResponseExtensions
 {
+    public static IActionResult ForbiddenResult(this ControllerBase controller, DisallowableAction action, DisallowableActionTarget target = DisallowableActionTarget.Entity, string? targetName = null)
+    {
+        var errors = new ErrorList();
+        errors.AddActionDisallowed(action, target, targetName);
+        return controller.CreateServerResponseResult(errors);
+    }
+
+    public static IActionResult EntityNotFoundResult(this ControllerBase controller, string entityName, string? query = null)
+    {
+        var errors = new ErrorList();
+        errors.AddEntityNotFound(entityName, query);
+        return controller.CreateServerResponseResult(errors);
+    }
+
     public static ObjectResult CreateServerResponseResult<T>(this ControllerBase controller, SuccessResult<T> result)
     {
         IServerResponse? resp; 
