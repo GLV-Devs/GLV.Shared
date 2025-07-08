@@ -1,0 +1,39 @@
+﻿@using GLV.Shared.Data;
+
+@if (DisplayEmptyBox || ErrorList.Count > 0)
+{
+    <div class="error-container @ContainerFilledClass">
+        @foreach (var error in ErrorList.Errors)
+        {
+            <p class="error-notice">
+                @FormatError(error)
+            </p>
+        }
+    </div>
+}
+
+@code {
+    private Func<ErrorMessage, string>? formatError;
+    private string DefaultFormatError(ErrorMessage e) => e.DefaultMessageEN!;
+
+    private string ContainerFilledClass => ErrorList.Count > 0 ? string.IsNullOrWhiteSpace(FilledClass) ? "filled" : FilledClass : "";
+
+    [Parameter]
+    public string? FilledClass { get; set; }
+
+    [Parameter]
+    public Func<ErrorMessage, string> FormatError
+    {
+        get => formatError ?? DefaultFormatError;
+        set => formatError = value;
+    }
+
+    [Parameter]
+    public ErrorList ErrorList { get; set; }
+
+    [Parameter]
+    public EventCallback<ErrorList> ErrorListChanged { get; set; }
+
+    [Parameter]
+    public bool DisplayEmptyBox { get; set; }
+}

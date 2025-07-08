@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using GLV.Shared.Common;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using System;
 using System.Collections.Generic;
@@ -8,14 +9,17 @@ using System.Threading.Tasks;
 
 namespace GLV.Shared.Blazor.Services;
 
-public record NavBarEntry(
-    string Name,
-    string Href,
-    string? SpanClass = null,
-    string? SpanStyle = null,
-    string NavLinkClass = "nav-item px-3",
-    NavLinkMatch Match = NavLinkMatch.All
-);
+public readonly struct NavBarEntry(string name, string href)
+{
+    public string Name { get; } = name;
+    public string Href { get; } = href;
+    public string? SpanClass { get; init; }
+    public string? SpanStyle { get; init; }
+    public string NavLinkClass { get; init; } = "nav-item px-3";
+    public string AnchorClass { get; init; } = "nav-link";
+    public string? ActiveAnchorClass { get; init; } 
+    public NavLinkMatch Match { get; init; } = NavLinkMatch.All;
+}
 
 public abstract class LayoutComponentProvider
 {
@@ -35,7 +39,19 @@ public abstract class LayoutComponentProvider
         }
     }
 
-    public abstract IEnumerable<RenderFragment> GetFooterComponents(IServiceProvider services);
-    public abstract IEnumerable<RenderFragment> GetTopBarComponents(IServiceProvider services);
-    public abstract IEnumerable<NavBarEntry> GetNavBarComponents(IServiceProvider services);
+    public string? NavBarTitle { get; set; }
+
+    public string? TopBarClass { get; set; }
+
+    public bool ContainArticleInDiv { get; set; }
+
+    public virtual IEnumerable<RenderFragment> GetFooterComponents(IServiceProvider services) => Array.Empty<RenderFragment>();
+    public virtual IAsyncEnumerable<RenderFragment> GetFooterComponentsAsync(IServiceProvider services) => AsyncEmpty<RenderFragment>.Empty();
+
+    public virtual IEnumerable<RenderFragment> GetTopBarComponents(IServiceProvider services) => Array.Empty<RenderFragment>();
+    public virtual IAsyncEnumerable<RenderFragment> GetTopBarComponentsAsync(IServiceProvider services) => AsyncEmpty<RenderFragment>.Empty();
+
+    public virtual IEnumerable<NavBarEntry> GetNavBarComponents(IServiceProvider services) => Array.Empty<NavBarEntry>();
+    public virtual IAsyncEnumerable<NavBarEntry> GetNavBarComponentsAsync(IServiceProvider services) => AsyncEmpty<NavBarEntry>.Empty();
+
 }

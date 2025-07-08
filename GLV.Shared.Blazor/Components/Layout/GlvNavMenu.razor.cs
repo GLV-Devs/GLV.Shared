@@ -11,4 +11,21 @@ namespace GLV.Shared.Blazor.Components.Layout;
 
 public partial class GlvNavMenu()
 {
+    private List<NavBarEntry>? NavBarEntries;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            NavBarEntries = new();
+
+            foreach (var comp in LayoutComponents.GetNavBarComponents(Services))
+                NavBarEntries.Add(comp);
+
+            await foreach (var comp in LayoutComponents.GetNavBarComponentsAsync(Services))
+                NavBarEntries.Add(comp);
+
+            StateHasChanged();
+        }
+    }
 }

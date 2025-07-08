@@ -9,6 +9,12 @@ public readonly record struct ElementSwitch(string WhenTrue, string WhenFalse, b
     public ElementSwitch ToTrue() => new(WhenTrue, WhenFalse, true);
 
     public string StateString => IsActive ? WhenTrue : WhenFalse;
+    public string ReverseStateString => IsActive ? WhenFalse : WhenTrue;
+
+    public static class ClassTag
+    {
+        public static ElementSwitch IsEnabled(bool startingValue = true) => new("", "disabled", startingValue);
+    }
 
     public static class StyleTag
     {

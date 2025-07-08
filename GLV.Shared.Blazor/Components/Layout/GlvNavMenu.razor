@@ -13,7 +13,7 @@
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">AibHub.AibConcierge</a>
+        <a class="navbar-brand" href="">@LayoutComponents.NavBarTitle</a>
     </div>
 </div>
 
@@ -21,16 +21,20 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
-        @if (LayoutComponents is not null)
+        @if (NavBarEntries is not null)
         {
-            @foreach (var comp in LayoutComponents.GetNavBarComponents(Services))
+            @foreach (var comp in NavBarEntries)
             {
                 <div class="@comp.NavLinkClass">
-                    <NavLink class="nav-link" href="@comp.Href" Match="@comp.Match">
+                    <NavLink class="@comp.AnchorClass" ActiveClass="@comp.ActiveAnchorClass" href="@comp.Href" Match="@comp.Match">
                         <span class="@comp.SpanClass" style="@comp.SpanStyle" aria-hidden="true"></span> @comp.Name
                     </NavLink>
                 </div>
             }
+        }
+        else
+        {
+            <Loading />
         }
     </nav>
 </div>

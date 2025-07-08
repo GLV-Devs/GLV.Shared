@@ -7,33 +7,58 @@
     <div class="sidebar" style="@LayoutComponents?.NavBarStyleSwitch.StateString">
         <GlvNavMenu />
     </div>
-
-    <main>
-        <div class="top-row px-4">
-            @if (LayoutComponents is not null)
-            {
-                @foreach (var comp in LayoutComponents.GetTopBarComponents(Services))
+    @if (HasLoaded) 
+    {
+        <main>
+            <div class="top-row top-bar px-4 @LayoutComponents?.TopBarClass">
+                @if (TopBarComponents is not null)
                 {
-                    @comp
+                    @foreach (var comp in TopBarComponents)
+                    {
+                        @comp
+                    }
                 }
-            }
-        </div>
-
-        <article class="content px-4">
-            @Body
-        </article>
-
-        <div class="footer">
-            <hr />
-            @if (LayoutComponents is not null)
-            {
-                @foreach (var comp in LayoutComponents.GetFooterComponents(Services))
+                else
                 {
-                    @comp
-                    <br />
+                    <Loading/>
                 }
-            }
-        </div>
+            </div>
 
-    </main>
+            @if (LayoutComponents?.ContainArticleInDiv is true)
+            {
+                <div class="content-container">
+                    <article class="content px-4">
+                        @Body
+                    </article>
+                </div>
+            }
+            else
+            {
+                <article class="content px-4">
+                    @Body
+                </article>
+            }
+
+            <div class="footer">
+                <hr />
+                @if (FooterComponents is not null)
+                {
+                    @foreach (var comp in FooterComponents)
+                    {
+                        @comp
+                        <br />
+                    }
+                }
+                else
+                {
+                    <Loading />
+                }
+            </div>
+
+        </main>
+    }
+    else
+    {
+        <GLV.Shared.Blazor.Components.Loading />
+    }
 </div>

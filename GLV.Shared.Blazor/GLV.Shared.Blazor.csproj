@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GLV.Shared.Common\GLV.Shared.Common.csproj" />
+    <ProjectReference Include="..\GLV.Shared.Data\GLV.Shared.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Update="wwwroot\glv.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

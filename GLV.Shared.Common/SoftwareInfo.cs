@@ -6,26 +6,26 @@ public sealed class SoftwareInfo
 {
     private DateTime nextInfoStringRequest = default;
 
-    public static SoftwareInfo GeCopyRightNoticeFor(string clientName)
+    public static SoftwareInfo GeCopyRightNoticeFor(string clientName, int? year = null)
         => new(
             "https://raw.githubusercontent.com/DiegoG1019/DiegoG1019/main/info/ClientCopyRight.txt",
             $"This website and all its content excluding 3rd party logos, icons and content belong to '{clientName}', © {DateTime.Now.Year} All rights reserved.",
-            str => str.Replace("{ClientName}", clientName).Replace("{Year}", DateTime.Now.Year.ToString())
+            str => str.Replace("{ClientName}", clientName).Replace("{Year}", (year ?? DateTime.Now.Year).ToString())
         );
 
-    public static SoftwareInfo GetOwnedByDevCopyRightNoticeFor(string clientName)
+    public static SoftwareInfo GetOwnedByDevCopyRightNoticeFor(string clientName, int? year = null)
         => new(
             "https://raw.githubusercontent.com/DiegoG1019/DiegoG1019/main/info/OwnedByDevCopyRight.txt",
-            $"This website's build artifacts, source code, and all its content excluding 3rd party logos, icons and content owned by '{clientName}' belong to Diego García, © {DateTime.Now.Year} All rights reserved.",
+            $"This website's build artifacts, source code, and all its content excluding 3rd party logos, icons and content owned by '{clientName}' belong to Diego García, © {(year ?? DateTime.Now.Year)} All rights reserved.",
             str => str.Replace("{ClientName}", clientName, StringComparison.OrdinalIgnoreCase)
-                      .Replace("{Year}", DateTime.Now.Year.ToString(), StringComparison.OrdinalIgnoreCase)
+                      .Replace("{Year}", (year ?? DateTime.Now.Year).ToString(), StringComparison.OrdinalIgnoreCase)
         );
 
-    public static SoftwareInfo CopyRightNotice { get; }
-        = new(
+    public static SoftwareInfo GetCopyRightNotice(int? year = null)
+        => new(
             "https://raw.githubusercontent.com/DiegoG1019/DiegoG1019/main/info/CopyRight.txt",
-            $"This website, and all its content excluding 3rd party logos and icons belong to Diego García, © {DateTime.Now.Year} All rights reserved.",
-            str => str.Replace("{Year}", DateTime.Now.Year.ToString())
+            $"This website, and all its content excluding 3rd party logos and icons belong to Diego García, © {year ?? DateTime.Now.Year} All rights reserved.",
+            str => str.Replace("{Year}", (year ?? DateTime.Now.Year).ToString())
         );
 
     public static SoftwareInfo HtmlDevDiegoGInfo { get; }

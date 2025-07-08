@@ -14,11 +14,19 @@ div {
 }
 
 .error-container {
+    max-height: 0;
     border: 2px dotted red;
-    border-radius: 15%;
+    border-radius: 15px;
     margin: 1rem;
     padding: .5rem;
+    overflow: hidden;
+    transition: max-height ease-out 3s;
 }
+
+    .error-container.filled {
+        max-height: 4000px;
+        transition: max-height ease-in 3s;
+    }
 
 .error-notice {
     color: red;
@@ -53,7 +61,7 @@ article {
 
 .footer {
     position: absolute;
-    bottom: 10px;
+    bottom: 0;
     width: 100%;
 }
 
@@ -79,8 +87,16 @@ article {
         border-style: solid;
     }
 
+.highlightable-size-only {
+    transition: height ease-in-out 0.15s, width ease-in-out 0.15s, transform ease-in-out 0.15s;
+}
+    .highlightable-size-only:hover {
+        transform: scale(1.05, 1.05);
+    }
+
 @keyframes top-drop-fade-in-anim {
     0% {
+        overflow-y: hidden;
         transform: scaleY(1.5);
         opacity: 0;
     }
@@ -90,6 +106,7 @@ article {
     }
 
     100% {
+        overflow-y: unset;
         opacity: unset;
     }
 }
