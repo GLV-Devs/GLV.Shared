@@ -1,5 +1,21 @@
 ﻿namespace GLV.Shared.Blazor;
 
+public readonly record struct ElementTripleSwitch(string WhenTrue, string WhenFalse, string WhenNull, bool? IsActive = null)
+{
+    public bool? IsActive { get; } = IsActive;
+
+    public ElementTripleSwitch ToFalse() => new(WhenTrue, WhenFalse, WhenNull, false);
+    public ElementTripleSwitch ToTrue() => new(WhenTrue, WhenFalse, WhenNull, true);
+    public ElementTripleSwitch ToNull() => new(WhenTrue, WhenFalse, WhenNull, null);
+
+    public string StateString => IsActive switch
+    {
+        true => WhenTrue,
+        false => WhenFalse,
+        null => WhenNull
+    };
+}
+
 public readonly record struct ElementSwitch(string WhenTrue, string WhenFalse, bool IsActive = true)
 {
     public bool IsActive { get; } = IsActive;

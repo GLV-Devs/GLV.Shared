@@ -271,9 +271,9 @@ public static partial class ErrorMessages
             }
         );
 
-    public static ErrorMessage BadUsername(string username)
+    public static ErrorMessage BadUsername(string? username)
         => new(
-            $"El nombre de usuario no es válido: {username}",
+            $"El nombre de usuario no es válido: {username ?? "''"}",
             nameof(BadUsername),
             new ErrorMessageProperty[]
             {

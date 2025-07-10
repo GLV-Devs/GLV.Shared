@@ -151,7 +151,7 @@ public static partial class ErrorMessagesExtensions
         return ref list.AddError(ErrorMessages.BadEmail(email));
     }
 
-    public static ref ErrorList AddBadUsername(this ref ErrorList list, string username)
+    public static ref ErrorList AddBadUsername(this ref ErrorList list, string? username)
     {
         list.RecommendedCode = HttpStatusCode.BadRequest;
         return ref list.AddError(ErrorMessages.BadUsername(username));

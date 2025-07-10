@@ -119,7 +119,9 @@ public static class DbContextExtensions
 
     public static async Task InitDatabase<TContext>(this IServiceProvider services, Func<TContext, Task>? debugSeed = null) where TContext : DbContext
     {
-        bool resetdb = Environment.CommandLine.Contains(" -reset-db");
+        var cl = Environment.CommandLine;
+
+        bool resetdb = cl.Contains(" --reset-db");
         using (services.CreateScope().GetRequiredService<TContext>(out var context))
         {
             if (resetdb)
@@ -134,14 +136,14 @@ public static class DbContextExtensions
 
             if (resetdb)
             {
-                if (debugSeed is not null && Environment.CommandLine.Contains(" -s"))
+                if (debugSeed is not null && cl.Contains(" -s"))
                 {
                     Console.WriteLine(" >!> Seeding reset Database with debugging info");
                     await debugSeed.Invoke(context);
                     await context.SaveChangesAsync();
                 }
 
-                if (Environment.CommandLine.Contains(" -k"))
+                if (cl.Contains(" -k"))
                 {
                     Console.WriteLine(" >!> Found the -k flag in -reset-db, killing app");
                     Environment.Exit(0);

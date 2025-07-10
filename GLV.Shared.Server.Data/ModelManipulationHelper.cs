@@ -99,8 +99,11 @@ public static class ModelManipulationHelper
         return false;
     }
 
-    public static bool IsEmptyString(this ref ErrorList errors, [NotNullWhen(false)] string? update,
-        [CallerArgumentExpression(nameof(update))] string property = "")
+    public static bool IsEmptyString(
+        this ref ErrorList errors, 
+        [NotNullWhen(false)] string? update,
+        [CallerArgumentExpression(nameof(update))] string property = ""
+    )
     {
         if (string.IsNullOrWhiteSpace(update))
         {
@@ -131,6 +134,72 @@ public static class ModelManipulationHelper
         {
             errors.RecommendedCode = HttpStatusCode.BadRequest;
             errors.AddError(ErrorMessages.TooLong(property, maxlength, update.Length));
+            return true;
+        }
+
+        return false;
+    }
+
+    public static bool CheckIfEmail(this FormValidationContext formContext, [NotNullWhen(true)] string? prospectiveEmail,
+        [CallerArgumentExpression(nameof(prospectiveEmail))] string property = "")
+    {
+        if (formContext.IsEmptyString(prospectiveEmail))
+            return false;
+
+        if (DataRegexes.IsEmail().IsMatch(prospectiveEmail))
+            return true;
+
+        formContext.GetField(property).Errors.AddBadEmail(prospectiveEmail);
+        return false;
+    }
+
+    public static bool IsNull<T>(
+        this FormValidationContext formContext,
+        [NotNullWhen(false)] T? value,
+        [CallerArgumentExpression(nameof(value))] string property = "")
+        where T : struct
+    {
+        if (value is null)
+        {
+            formContext.GetField(property).AddError(ErrorMessages.EmptyProperty(property));
+            return true;
+        }
+
+        return false;
+    }
+
+    public static bool IsEmptyString(
+        this FormValidationContext formContext,
+        [NotNullWhen(false)] string? update,
+        [CallerArgumentExpression(nameof(update))] string property = ""
+    )
+    {
+        if (string.IsNullOrWhiteSpace(update))
+        {
+            formContext.GetField(property).AddError(ErrorMessages.EmptyProperty(property));
+            return true;
+        }
+
+        return false;
+    }
+
+    public static bool IsExactLength(this FormValidationContext formContext, string update, int length, [CallerArgumentExpression(nameof(update))] string property = "")
+    {
+        if (update.Length != length)
+        {
+            formContext.GetField(property).AddError(ErrorMessages.NotExactLength(property, length, update.Length));
+            return false;
+        }
+
+        return true;
+    }
+
+    public static bool IsTooLong(this FormValidationContext formContext, string update, int maxlength,
+        [CallerArgumentExpression(nameof(update))] string property = "")
+    {
+        if (update.Length > maxlength)
+        {
+            formContext.GetField(property).AddError(ErrorMessages.TooLong(property, maxlength, update.Length));
             return true;
         }
 

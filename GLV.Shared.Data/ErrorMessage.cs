@@ -3,13 +3,14 @@ using System.Runtime.CompilerServices;
 
 namespace GLV.Shared.Data;
 
-public struct ErrorList(HttpStatusCode recommendedCode)
+public struct ErrorList(HttpStatusCode recommendedCode, bool forceEmpty = false)
 {
     internal List<ErrorMessage>? _errors;
+    internal readonly bool forceEmpty = forceEmpty;
 
     public readonly int Count => _errors?.Count ?? 0;
 
-    public readonly IEnumerable<ErrorMessage> Errors => _errors ?? (IEnumerable<ErrorMessage>)[];
+    public readonly IEnumerable<ErrorMessage> Errors => _errors ?? (IEnumerable<ErrorMessage>)Array.Empty<ErrorMessage>();
 
     public HttpStatusCode? RecommendedCode { get; set; } = recommendedCode;
 }
