@@ -1,11 +1,55 @@
 ﻿using System.Buffers;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace GLV.Shared.Common;
 
-public static class StringExtensions
+public static partial class StringExtensions
 {
+    [return: NotNullIfNotNull(nameof(addr))]
+    public static string? GetPropertyName(this string addr)
+    {
+        var m = PropertyNameRegex.Match(addr);
+        return m.Success ? m.Groups["prop"].Value : addr;
+    }
+
+    [GeneratedRegex(@"(?<prop>\w+)$", RegexOptions.Singleline)]
+    private static partial Regex PropertyNameRegex { get; }
+
+    public static StringBuilder AppendTabs(this StringBuilder sb, int tabs)
+    {
+        ArgumentNullException.ThrowIfNull(sb);
+        if (tabs <= 0) return sb;
+        for (int i = 0; i < tabs; i++)
+            sb.Append('\t');
+
+        return sb;
+    }
+    
+    public static Span<char> ToStringSpan<T>(this T obj, Span<char> buffer, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+        where T : ISpanFormattable
+    {
+        if (obj.TryFormat(buffer, out int written, format, provider))
+            return buffer[..written];
+
+        throw new ArgumentException("The buffer is not large enough to complete the format operation");
+    }
+
+    public static bool TryToStringSpan<T>(this T obj, Span<char> buffer, out Span<char> result, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+        where T : ISpanFormattable
+    {
+        if (obj.TryFormat(buffer, out int written, format, provider))
+        {
+            result = buffer[..written];
+            return true;
+        }
+
+        result = buffer;
+        return false;
+    }
+    
     public static bool TryGetTextAfter(this string str, string c, [NotNullWhen(true)] out string? text)
     {
         var firstSpace = str.IndexOf(c);

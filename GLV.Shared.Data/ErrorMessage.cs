@@ -10,7 +10,8 @@ public struct ErrorList(HttpStatusCode recommendedCode, bool forceEmpty = false)
 
     public readonly int Count => _errors?.Count ?? 0;
 
-    public readonly IEnumerable<ErrorMessage> Errors => _errors ?? (IEnumerable<ErrorMessage>)Array.Empty<ErrorMessage>();
+    public readonly IEnumerable<ErrorMessage> Errors 
+        => forceEmpty || _errors is null ? Array.Empty<ErrorMessage>() : _errors;
 
     public HttpStatusCode? RecommendedCode { get; set; } = recommendedCode;
 }

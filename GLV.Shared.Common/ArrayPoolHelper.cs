@@ -59,17 +59,17 @@ public static class ArrayPoolHelper
     public static ArrayPoolRented<T> Rent<T>(int minimumLength)
         => new(minimumLength);
 
-    public static bool TryRent<T>(int minimumLength, out ArrayPoolRented<T> rented, int? maxBytes = default) where T : unmanaged
+    public static bool TrySkipRent<T>(int minimumLength, out ArrayPoolRented<T> rented, int? maxBytes = default) where T : unmanaged
     {
         if (GetTotalBytes<T>(minimumLength) > (maxBytes ?? DefaultLimitForStackAllocationInBytes))
         {
             rented = new(minimumLength);
-            return true;
+            return false;
         }
         else
         {
             rented = default;
-            return false;
+            return true;
         }
     }
 }

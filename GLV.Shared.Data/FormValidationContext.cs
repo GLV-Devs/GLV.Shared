@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using GLV.Shared.Common;
 
 namespace GLV.Shared.Data;
 
@@ -48,9 +49,7 @@ public class FormValidationContext(object model)
 
     public FormValidationField GetField(string name)
     {
-        
-
-        var prop = model.GetType().GetProperty(name);
+        var prop = model.GetType().GetProperty(name.GetPropertyName());
         return prop is null
             ? throw new ArgumentException($"Model of type '{model.GetType().Name}' does not have a property called '{name}'")
             : new(prop, this);
