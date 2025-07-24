@@ -15,6 +15,29 @@ public static partial class StringExtensions
         return m.Success ? m.Groups["prop"].Value : addr;
     }
 
+    private static readonly Dictionary<Type, string> typeExpressionCache = [];
+    
+    public static string GetCSharpTypeExpression(this Type type, bool noCache = false, StringBuilder? sb = null)
+    {
+        if (type.IsGenericType is false || type.IsConstructedGenericType is false) return type.Name;
+
+        if (noCache is false && typeExpressionCache.TryGetValue(type, out var str) is true)
+            return str;
+        
+        sb ??= new StringBuilder(100);
+        var genTypeDef = type.GetGenericTypeDefinition();
+        sb.Append(genTypeDef.Name).Append('<');
+        foreach (var gt in type.GenericTypeArguments)
+            sb.Append(gt.GetCSharpTypeExpression(sb: sb)).Append(", ");
+        sb.Remove(sb.Length - 2, 2).Append('>');
+        str = sb.ToString();
+        
+        if (noCache is false)
+            typeExpressionCache[type] = str;
+
+        return str;
+    }
+
     [GeneratedRegex(@"(?<prop>\w+)$", RegexOptions.Singleline)]
     private static partial Regex PropertyNameRegex { get; }
 

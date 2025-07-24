@@ -14,6 +14,12 @@ public static class FileExtensions
 
 public static class GLVEnumerableExtensions
 {
+    public static T GetRandomItem<T>(this T[] array, Random? rand)
+        => array[(rand ?? Random.Shared).Next(0, array.Length)];
+
+    public static T GetRandomItem<T>(this T[] array)
+        => array[RandomNumberGenerator.GetInt32(0, array.Length)];
+
     public static T GetRandomItem<T>(this IEnumerable<T> collection, Random? rand)
         => collection.ElementAt((rand ?? Random.Shared).Next(0, collection.Count()));
 
