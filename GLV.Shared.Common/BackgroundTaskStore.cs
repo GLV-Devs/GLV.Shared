@@ -60,6 +60,17 @@ public static class BackgroundTaskStore
         await whenAll;
     }
 
+    public static int RunningTasks => _tasks.Count;
+
+    public static bool CheckForCompletedTasks()
+    {
+        if (RunningTasks == 0) return false;
+        foreach (var task in _tasks)
+            if (task.IsCompleted)
+                return true;
+        return false;
+    }
+
     /// <summary>
     /// Performs a single sweep on the store, searching for completed tasks to await
     /// </summary>
